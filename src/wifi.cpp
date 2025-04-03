@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include "config.h"
+#include "wifi.h"
+
+const char* SSID = "Disconnect";
+const char* PASSWORD = "254/101/17/24";
 
 void connectWiFi() {
   WiFi.begin(SSID, PASSWORD);

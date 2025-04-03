@@ -1,7 +1,13 @@
 #include <Arduino.h>
 #include <Ethernet.h>
 #include <SPI.h>  // Thêm SPI để đảm bảo
-#include "config.h"
+#include "ethernet.h"
+
+uint8_t MAC_ADDRESS[6] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};  
+const int ETHERNET_CS_PIN = 20;     
+const int ETHERNET_SPI_CLK = 3; 
+const int ETHERNET_SPI_MOSI = 9;   
+const int ETHERNET_SPI_MISO = 46;   
 
 TaskHandle_t ethernetTaskHandle = NULL;
 EthernetClient ethernetClient;

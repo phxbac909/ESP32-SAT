@@ -3,7 +3,9 @@
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
-#include "config.h"
+#include "bluetooth.h"
+
+const char* BT_NAME = "ESP32_BT";
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;

@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <Adafruit_BMP085.h>
+#include "bmp180.h"
 
 Adafruit_BMP085 bmp;
 
@@ -20,7 +21,7 @@ void bmp180Service(void *pvParameters) {
   }
 }
 
-void startBMP180Service() {
+void startBMP180() {
   xTaskCreate(
     bmp180Service,   // Hàm service
     "BMP180Service", // Tên task

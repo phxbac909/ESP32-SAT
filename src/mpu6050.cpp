@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
+#include "mpu6050.h"
 
 Adafruit_MPU6050 mpu;
 
@@ -32,7 +33,7 @@ void mpu6050Service(void *pvParameters) {
   }
 }
 
-void startMPU6050Service() {
+void startMPU6050() {
   xTaskCreate(
     mpu6050Service,   // Hàm service
     "MPU6050Service", // Tên task

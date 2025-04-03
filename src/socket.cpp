@@ -1,6 +1,10 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include "config.h"
+#include "socket.h"
+
+const int SERVER_PORT = 8080;
+const char* TARGET_IP = "192.168.1.109";
+const int TARGET_PORT = 8081;
 
 WiFiServer server(SERVER_PORT);
 TaskHandle_t serverTaskHandle = NULL;
