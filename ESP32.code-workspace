@@ -3,6 +3,10 @@
 		{
 			"name": "ESP32",
 			"path": "."
+		},
+		{
+			"name": "ESP32-L1",
+			"path": "../ESP32-L1"
 		}
 	],
 	"settings": {
