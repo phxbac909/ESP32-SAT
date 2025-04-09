@@ -3,10 +3,11 @@
 #include "socket.h"
 
 const int SERVER_PORT = 8080;
-const char* TARGET_IP = "192.168.1.109";
+const char* TARGET_IP = "192.168..109";
 const int TARGET_PORT = 8081;
 
 WiFiServer server(SERVER_PORT);
+WiFiClient sendClient;
 TaskHandle_t serverTaskHandle = NULL;
 TaskHandle_t sendTaskHandle = NULL;
 
@@ -30,26 +31,39 @@ void serverTask(void *parameter) {
   }
 }
 
-void sendTask(void *parameter) {
-  WiFiClient sendClient;
+void sendMessage(char * message) {
+
   while (true) {
     if (WiFi.status() == WL_CONNECTED) {
-      if (sendClient.connect(TARGET_IP, TARGET_PORT)) {
-        sendClient.println("ESP32 alive");
-        Serial.println("Sent: ESP32 alive");
-        sendClient.stop();
-      } else {
-        Serial.println("Failed to connect to target");
+      if (!sendClient.connected()) { 
+        if (sendClient.connect(TARGET_IP, TARGET_PORT)) {
+          Serial.println("Connected to target server");
+        } else {
+          Serial.println("Failed to connect to target");
+          vTaskDelay(5000 / portTICK_PERIOD_MS);
+          continue; // Thử lại sau 5 giây
+        }
       }
+
+      if (sendClient.connected()) {
+        sendClient.println("0-1-2-3-4-5-6-7-8-9-10-11"); // Gửi dữ liệu
+        Serial.println("Sent !");
+      } else {
+        Serial.println("Lost connection to server");
+        sendClient.stop(); // Đóng kết nối để thử lại
+      }
+    } else {
+      Serial.println("WiFi not connected");
+      sendClient.stop(); // Đóng kết nối nếu WiFi mất
     }
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    vTaskDelay(5000 / portTICK_PERIOD_MS); // Đợi 5 giây
   }
+
 }
 
-void startSocketTasks() {
+void startSocketServer() {
   server.begin();
   Serial.println("Socket server started on port 8080");
 
   xTaskCreate(serverTask, "ServerTask", 4096, NULL, 1, &serverTaskHandle);
-  xTaskCreate(sendTask, "SendTask", 4096, NULL, 1, &sendTaskHandle);
 }

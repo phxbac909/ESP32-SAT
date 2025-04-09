@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Ethernet.h>
-#include <SPI.h>  // Thêm SPI để đảm bảo
-#include "ethernet.h"
+#include <SPI.h>  
+#include "ethernet_config.h"
 
 uint8_t MAC_ADDRESS[6] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};  
 const int ETHERNET_CS_PIN = 20;     
@@ -68,5 +68,5 @@ void startEthernet() {
   Serial.println("Ethernet started");
   Serial.print("IP address: ");
   Serial.println(Ethernet.localIP());
-  xTaskCreate(ethernetTask, "EthernetTask", 8192, NULL, 1, &ethernetTaskHandle);
+  // xTaskCreate(ethernetTask, "EthernetTask", 8192, NULL, 1, &ethernetTaskHandle);
 }
