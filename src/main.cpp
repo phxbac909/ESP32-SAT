@@ -10,11 +10,15 @@
 
 int counter = 0;
 
+void lora_begin();
+void lora_receive_packet();
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
   Serial.println("Starting ESP32...");
-  loraBegin();
+  // loraBegin();
+  lora_begin();
   // startBMP180();
   // startMPU6050();
   // startWiFi();
@@ -27,7 +31,8 @@ void setup() {
 }
 
 void loop() {
-  loraSendPacket(counter);
+  lora_receive_packet();
+  // loraSendPacket(counter);
   counter++;
   delay(5000); 
  // checkWiFi();
