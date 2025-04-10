@@ -5,15 +5,7 @@
 #include <SPI.h>
 #include <LoRa.h>
 
-// Định nghĩa các chân cho LoRa RA-01H
-#define LORA_SS   5U
-#define LORA_RST  2U
-#define LORA_DIO0 4U
 
-// Định nghĩa các chân SPI
-#define SPI_SCK   18U
-#define SPI_MOSI  23U
-#define SPI_MISO  19U
 
 #define PIN_LORA_COPI   23
 #define PIN_LORA_CIPO   19
@@ -29,7 +21,6 @@
 // Hàm khởi tạo LoRa
 void lora_begin() {
     // Khởi tạo SPI với các chân đã định nghĩa
-    SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI, LORA_SS);
 
     // Khởi tạo module LoRa
     // LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);

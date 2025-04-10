@@ -33,8 +33,7 @@ void setup() {
 void loop() {
   lora_receive_packet();
   // loraSendPacket(counter);
-  counter++;
-  delay(5000); 
+  // counter++;
  // checkWiFi();
 }
 
