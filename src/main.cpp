@@ -12,26 +12,18 @@ int counter = 0;
 
 void lora_begin();
 void lora_receive_packet();
+void lora_send_data(String data);
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("Starting ESP32...");
-  // loraBegin();
+  Serial.println("Starting ESP32-SAT...");
   lora_begin();
-  // startBMP180();
-  // startMPU6050();
-  // startWiFi();
-  // startSocketServer();
-  // sendMessage("0-0-0-0-0-0-0-0-0-0-0");
-  
- // startBluetooth();
-//  startEthernet();
-
 }
 
 void loop() {
-  lora_receive_packet();
+  lora_send_data("Hello from sattelite!");
+  delay(5000);
   // loraSendPacket(counter);
   // counter++;
  // checkWiFi();

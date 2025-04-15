@@ -16,31 +16,34 @@
 
 
 // Tần số LoRa (921 MHz)
-#define LORA_FREQUENCY 921E6
+#define LORA_FREQUENCY 922E6
 
 // Hàm khởi tạo LoRa
 void lora_begin() {
-    // Khởi tạo SPI với các chân đã định nghĩa
 
-    // Khởi tạo module LoRa
-    // LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
+
     LoRa.setPins (PIN_LORA_CS, PIN_LORA_RST, PIN_LORA_DIO0);
 
-    // Bắt đầu LoRa với tần số 921 MHz
     if (!LoRa.begin(LORA_FREQUENCY)) {
         Serial.println("LoRa initialization failed!");
         while (1); // Dừng chương trình nếu khởi tạo thất bại
     }
 
-    // Bỏ qua cấu hình các tham số vì chỉ nhận packet
-    // Nếu cần, bạn có thể thêm lại các tham số sau để khớp với bên gửi:
-    // LoRa.setSpreadingFactor(7); // Spreading Factor (6-12)
-    // LoRa.setSignalBandwidth(125E3); // Băng thông tín hiệu (125 kHz)
-    // LoRa.setCodingRate4(5); // Coding Rate (5-8)
+  
+    LoRa.setSpreadingFactor(7); // Spreading Factor (6-12)
+    LoRa.setSignalBandwidth(125E3); // Băng thông tín hiệu (125 kHz)
+    LoRa.setCodingRate4(5); // Coding Rate (5-8)
 
     Serial.println("LoRa initialized successfully!");
 }
-
+void lora_send_data(String data) {
+    LoRa.beginPacket();
+    LoRa.print(data);
+    Serial.print("Sending packet: ");
+    Serial.println(data);
+    LoRa.flush(); // Đảm bảo dữ liệu được gửi ngay lập tức
+    LoRa.endPacket();
+  }
 // Hàm nhận packet
 void lora_receive_packet() {
     // Kiểm tra xem có packet nào được nhận không

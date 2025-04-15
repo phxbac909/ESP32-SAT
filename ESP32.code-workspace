@@ -1,12 +1,8 @@
 {
 	"folders": [
 		{
-			"name": "ESP32",
+			"name": "ESP32-SAT",
 			"path": "."
-		},
-		{
-			"name": "ESP32-L1",
-			"path": "../ESP32-L1"
 		}
 	],
 	"settings": {
