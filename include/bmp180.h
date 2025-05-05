@@ -1,6 +1,7 @@
 #ifndef BMP180_H
 #define BMP180_H
 
-void startBMP180();
+void bmp180_init();
+String bmp180_data();
 
 #endif

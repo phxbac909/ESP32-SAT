@@ -1,38 +1,92 @@
-#include <Wire.h>
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
 #include "mpu6050.h"
 
+// Biến toàn cục
 Adafruit_MPU6050 mpu;
-sensors_event_t a, g, temp;
-bool isActive = true;
+float roll = 0, pitch = 0, yaw = 0;
+float gyroXOffset = 0, gyroYOffset = 0, gyroZOffset = 0;
+float accXOffset = 0, accYOffset = 0, accZOffset = 0;
+unsigned long lastTime = 0;
 
-void setupMpu6050() {
-  Wire.begin();
-  if (!mpu.begin(0x68)) {
-    isActive = false;
-    Serial.println("Không tìm thấy MPU6050!");
+// Hàm hiệu chỉnh offset
+void calibrateMPU6050() {
+  const int numSamples = 1000;
+  float gyroXSum = 0, gyroYSum = 0, gyroZSum = 0;
+  float accXSum = 0, accYSum = 0, accZSum = 0;
+
+  Serial.println("Đang hiệu chỉnh, giữ cảm biến đứng yên...");
+  delay(2000);
+
+  for (int i = 0; i < numSamples; i++) {
+    sensors_event_t a, g, temp;
+    mpu.getEvent(&a, &g, &temp);
+    gyroXSum += g.gyro.x;
+    gyroYSum += g.gyro.y;
+    gyroZSum += g.gyro.z;
+    accXSum += a.acceleration.x;
+    accYSum += a.acceleration.y;
+    accZSum += a.acceleration.z - 9.81; // Trừ trọng lực
+    delay(2);
   }
-  Serial.println("MPU6050 đã được tìm thấy!");
-  mpu.setAccelerometerRange(MPU6050_RANGE_2_G);
-  mpu.setGyroRange(MPU6050_RANGE_250_DEG);
+
+  gyroXOffset = gyroXSum / numSamples;
+  gyroYOffset = gyroYSum / numSamples;
+  gyroZOffset = gyroZSum / numSamples;
+  accXOffset = accXSum / numSamples;
+  accYOffset = accYSum / numSamples;
+  accZOffset = accZSum / numSamples;
+}
+
+// Hàm khởi tạo MPU6050
+void mpu6050_init() {
+  Serial.begin(115200);
+  while (!Serial) delay(10);
+
+  Wire.begin(21, 22); // SDA = GPIO21, SCL = GPIO22
+  if (!mpu.begin()) {
+    Serial.println("Không tìm thấy MPU6050!");
+    while (1) delay(10);
+  }
+  Serial.println("MPU6050 đã kết nối!");
+
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
 
+  calibrateMPU6050(); // Hiệu chỉnh cảm biến
 }
 
-String getMpu6050Data() {
-  if (!isActive) {
-    Serial.println("MPU6050 không hoạt động!");
-    return "0-0-0-0-0-0-0";
-  }
+String mpu6050_data() {
+  sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
-  String data = String(a.acceleration.x) + "-" +
-                String(a.acceleration.y) + "-" +
-                String(a.acceleration.z) + "-" +
-                String(g.gyro.x) + "-" +
-                String(g.gyro.y) + "-" +
-                String(g.gyro.z) + "-" +
-                String(temp.temperature);
-  return data;
-}
 
+  // Trừ offset
+  float accX = a.acceleration.x - accXOffset;
+  float accY = a.acceleration.y - accYOffset;
+  float accZ = a.acceleration.z - accZOffset;
+  float gyroX = g.gyro.x - gyroXOffset;
+  float gyroY = g.gyro.y - gyroYOffset;
+  float gyroZ = g.gyro.z - gyroZOffset;
+
+  // Tính thời gian chênh lệch
+  unsigned long currentTime = micros();
+  float dt = (currentTime - lastTime) / 1000000.0; // Giây
+  lastTime = currentTime;
+
+  // Tính Roll và Pitch từ gia tốc kế
+  float accRoll = atan2(accY, accZ) * 180 / PI;
+  float accPitch = atan2(-accX, sqrt(accY * accY + accZ * accZ)) * 180 / PI;
+
+  // Tích hợp con quay
+  roll += gyroX * dt * 180 / PI;
+  pitch += gyroY * dt * 180 / PI;
+  yaw += gyroZ * dt * 180 / PI;
+
+  // Complementary Filter
+  float alpha = 0.9;
+  roll = alpha * roll + (1 - alpha) * accRoll;
+  pitch = alpha * pitch + (1 - alpha) * accPitch;
+
+  // Tạo chuỗi kết quả
+  String result = String(roll, 2) + " " + String(pitch, 2) + " " + String(yaw, 2);
+  return result;
+}
