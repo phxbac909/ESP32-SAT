@@ -2,6 +2,6 @@
 #define BMP180_H
 
 void bmp180_init();
-String bmp180_data();
+double* bmp180_data();
 
 #endif

@@ -6,6 +6,6 @@
 
 
 void mpu6050_init();
-String mpu6050_data();
+double* mpu6050_data();
 
 #endif

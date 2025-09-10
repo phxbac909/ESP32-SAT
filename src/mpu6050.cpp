@@ -7,6 +7,9 @@ float gyroXOffset = 0, gyroYOffset = 0, gyroZOffset = 0;
 float accXOffset = 0, accYOffset = 0, accZOffset = 0;
 unsigned long lastTime = 0;
 
+static bool isActive = true ;
+static double data[3];
+
 // Hàm hiệu chỉnh offset
 void calibrateMPU6050() {
   const int numSamples = 1000;
@@ -44,7 +47,8 @@ void mpu6050_init() {
   Wire.begin(21, 22); // SDA = GPIO21, SCL = GPIO22
   if (!mpu.begin()) {
     Serial.println("Không tìm thấy MPU6050!");
-    while (1) delay(10);
+    isActive = false;
+    return;
   }
   Serial.println("MPU6050 đã kết nối!");
 
@@ -55,7 +59,15 @@ void mpu6050_init() {
   calibrateMPU6050(); // Hiệu chỉnh cảm biến
 }
 
-String mpu6050_data() {
+double* mpu6050_data() {
+  
+  if (!isActive) {
+    data[0] = 0;
+    data[1] = 0;    
+    data[2] = 0;
+    Serial.println("MPU6050 không hoạt động!");
+    return data;
+  }
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
@@ -86,7 +98,15 @@ String mpu6050_data() {
   roll = alpha * roll + (1 - alpha) * accRoll;
   pitch = alpha * pitch + (1 - alpha) * accPitch;
 
+  Serial.println("Roll: " + String(roll));
+  Serial.println("Pitch: " + String(pitch));
+  Serial.println("Yaw: " + String(yaw));
+ 
+
   // Tạo chuỗi kết quả
-  String result = String(roll, 2) + " " + String(pitch, 2) + " " + String(yaw, 2);
-  return result;
+  data[0] = roll ;
+  data[1] = pitch ;
+  data[2] = yaw ; 
+  return data;
+
 }
