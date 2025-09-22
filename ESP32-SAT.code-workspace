@@ -1,12 +1,7 @@
 {
 	"folders": [
 		{
-			"name": "MPU9250PJ",
-			"path": "../MPU9250PJ"
-		},
-		{
-			"name": "mpu6050v2",
-			"path": "../mpu6050v2"
+			"path": "."
 		}
 	],
 	"settings": {
