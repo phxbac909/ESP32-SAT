@@ -16,6 +16,6 @@
 #define PID_MAX_OUTPUT 800
 
 // Tốc độ mục tiêu mặc định (RPM)
-#define DEFAULT_TARGET_RPM 10
+#define DEFAULT_TARGET_RPM 5
 
 #endif

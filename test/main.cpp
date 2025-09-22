@@ -127,7 +127,7 @@
 // }
 
 
-const unsigned long TEST_DURATION = 1; // Thời gian test cho mỗi mức PWM (ms)
+const unsigned long TEST_DURATION = 1000; // Thời gian test cho mỗi mức PWM (ms)
 const unsigned long SAMPLE_TIME = 50;     // Thời gian lấy mẫu (ms)
 
 // Các mức PWM muốn test (thay đổi theo động cơ của bạn)
@@ -175,10 +175,8 @@ void loop() {
     
     // Áp dụng giá trị PWM cho động cơ
     motor_set_speed(currentPWM);
-    
     // Đọc và tính toán RPM (hàm đã có sẵn)
-    float currentRPM = encoder_calculate_rpm(SAMPLE_TIME);
-    
+    float currentRPM = encoder_get_rpm();
     // Xuất dữ liệu dạng CSV
     Serial.print(currentTime);
     Serial.print(",");
