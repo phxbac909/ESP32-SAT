@@ -27,9 +27,13 @@ void lora_init() {
         while (1);
     }
 
-    LoRa.setSpreadingFactor(12); // Spreading Factor (6-12)
-    LoRa.setSignalBandwidth(125E3); // Băng thông tín hiệu (125 kHz)
-    LoRa.setCodingRate4(5); // Coding Rate (5-8)
+    LoRa.setSpreadingFactor(8);        // SF8 - Cân bằng tốt
+    LoRa.setSignalBandwidth(250E3);    // BW250 - Tốc độ cao, đủ nhạy
+    LoRa.setCodingRate4(5);           // CR 4/5 - Sửa lỗi vừa phải
+    LoRa.setTxPower(17);              // Công suất vừa đủ
+    LoRa.setPreambleLength(8);        // Preamble ngắn cho tốc độ
+    LoRa.enableCrc();                 // Bật CRC kiểm tra lỗi
+    LoRa.setSyncWord(0x12);           // Sync word riêng tránh nhiễu
 
     Serial.println("LoRa initialized successfully!");
 }
@@ -73,19 +77,19 @@ void lora_send_packet() {
     LoRa.endPacket();
 }
 
-// Hàm nhận packet
-void lora_receive_packet() {
-    // Kiểm tra xem có packet nào được nhận không
+String lora_receive_packet() {
+   
     int packetSize = LoRa.parsePacket();
+    String receivedData = "";
+    
     if (packetSize) {
-        // Đọc packet
-        Serial.println("Received packet: ");
-        Serial.print("...............................");
         while (LoRa.available()) {
-            Serial.print((char)LoRa.read());
+            receivedData += (char)LoRa.read();
         }
-         Serial.println("...............................");
+        return receivedData;
     }
+    
+    return ""; // Trả về string rỗng nếu không có packet
 }
 
 char lora_receive_command() {
