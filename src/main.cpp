@@ -18,8 +18,7 @@ void setup() {
 
   
   mpu6050_init();
-  // bmp180_init();
-  // bmp_init();
+  bmp_init();
     // init_gps();
 
   motor_init();
@@ -27,17 +26,12 @@ void setup() {
   lora_init();
 
   init_task_receive_data();
-  // pid_altitude_init();
-
+  pid_altitude_init();
 
 }
 
 void loop() {
-  // float altitude = bmp_altitude();
-  //   Serial.print("Filtered Altitude: ");
-  //   Serial.print(altitude);
-  //   Serial.println(" m");
-    
+
   //   // Read and display filtered temperature
   //   float temperature = bmp_temperature();
   //   Serial.print("Filtered Temperature: ");
@@ -45,5 +39,5 @@ void loop() {
   //   Serial.println(" °C");
     
   //   Serial.println("--------------------");
-  //   delay(2000);
+    delay(40);
 }
