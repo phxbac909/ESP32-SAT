@@ -9,9 +9,9 @@
 extern TinyGPSPlus gps;
 extern HardwareSerial SerialGPS;
 
-// Hàm khởi tạo GPS
-void init_gps();
+void gps_init() ;
 
-TinyGPSLocation get_gps_location();
+// Hàm lấy vĩ độ
+TinyGPSLocation gps_location();
 
 #endif

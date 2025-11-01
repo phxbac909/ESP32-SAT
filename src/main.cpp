@@ -6,7 +6,6 @@
 #include "config.h"
 #include "motor.h"
 #include <ESP32_Servo.h>
-#include "task_lora.h"
 #include "pid_altitude.h"
 #include <Wire.h>
 
@@ -16,28 +15,21 @@ void setup() {
   delay(1000);
   Serial.println("Starting ESP32-SAT...");  
 
-  
+  bmp_init(); 
   mpu6050_init();
-  bmp_init();
-    // init_gps();
 
-  motor_init();
+  // gps_init();
 
-  lora_init();
+  // motor_init();
 
-  init_task_receive_data();
-  pid_altitude_init();
+  // lora_init();
+
+  // init_task_receive_data();
+  // init_task_send_data();
+  // pid_altitude_init();
 
 }
 
 void loop() {
 
-  //   // Read and display filtered temperature
-  //   float temperature = bmp_temperature();
-  //   Serial.print("Filtered Temperature: ");
-  //   Serial.print(temperature);
-  //   Serial.println(" °C");
-    
-  //   Serial.println("--------------------");
-    delay(40);
 }

@@ -1,16 +1,12 @@
 #ifndef MPU6050_H
 #define MPU6050_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <Arduino.h>
 
 void mpu6050_init();
-double* mpu6050_data();
-float mpu6050_accel_z();
-
-#ifdef __cplusplus
-}
-#endif
+float mpu6050_roll();
+float mpu6050_pitch(); 
+float mpu6050_velocity(); // Vận tốc thẳng đứng đã fusion với BMP280
+float mpu6050_accel_z(); // Gia tốc Z thô (tuỳ chọn)
 
 #endif

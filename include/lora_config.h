@@ -14,4 +14,7 @@ double gps_get_latitude();
 double gps_get_longitude();
 char lora_receive_command();
 
+void init_task_send_data();
+void init_task_receive_data();
+
 #endif

@@ -8,12 +8,12 @@ TinyGPSPlus gps;
 HardwareSerial SerialGPS(2);
 
 // Hàm khởi tạo GPS
-void init_gps() {
+void gps_init() {
   SerialGPS.begin(9600, SERIAL_8N1, 16, 17); // UART2: GPIO16 (RX), GPIO17 (TX)
 }
 
 // Hàm lấy vĩ độ
-TinyGPSLocation get_gps_location(){
+TinyGPSLocation gps_location(){
     while (SerialGPS.available() > 0) {
         gps.encode(SerialGPS.read());
     }

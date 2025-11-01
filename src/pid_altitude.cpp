@@ -65,44 +65,14 @@ void pid_altitude_compute(void) {
 void pid_altitude_task(void *parameter) {
     while(1) {
         if (altitude_command_throttle == 0 && altitude_hold_enabled) {
-            // Altitude Hold Mode - Use PID to maintain hover
             pid_altitude_compute();
             
-            // Apply PID correction to base throttle
             altitude_final_throttle_pwm = altitude_base_throttle + (int)altitude_output;
-            
-            // // Debug output (optional)
-            // static unsigned long last_debug = 0;
-            // if (millis() - last_debug > 1000) {
-            //     Serial.print("Alt Hold - AccelZ: ");
-            //     Serial.print(altitude_input, 3);
-            //     Serial.print(" | Correction: ");
-            //     Serial.print(altitude_output, 1);
-            //     Serial.print(" | Base: ");
-            //     Serial.print(altitude_base_throttle);
-            //     Serial.print(" | Final PWM: ");
-            //     Serial.println(altitude_final_throttle_pwm);
-            //     last_debug = millis();
-            // }
+
         } else {
-            // Manual Throttle Mode - Direct command control
-            // Map command (-100 to +100) to PWM OFFSET (không thay đổi altitude_base_throttle)
+
             int throttle_offset = map(altitude_command_throttle, -100, 100, -800, 800);
             altitude_final_throttle_pwm = altitude_base_throttle + throttle_offset;
-            
-            // Debug output
-            // static unsigned long last_manual_debug = 0;
-            // if (millis() - last_manual_debug > 1000) {
-            //     Serial.print("Manual - Command: ");
-            //     Serial.print(altitude_command_throttle);
-            //     Serial.print(" | Offset: ");
-            //     Serial.print(throttle_offset);
-            //     Serial.print(" | Base: ");
-            //     Serial.print(altitude_base_throttle);
-            //     Serial.print(" | Final PWM: ");
-            //     Serial.println(altitude_final_throttle_pwm);
-            //     last_manual_debug = millis();
-            // }
         }
         
         // Constrain PWM output

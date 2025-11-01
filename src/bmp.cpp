@@ -1,111 +1,56 @@
 #include "bmp.h"
-#include <Wire.h>
 #include <Adafruit_BMP280.h>
-#include <Arduino.h>
-#include "mpu6050.h"
-
-// Using SimpleKalmanFilter for noise filtering
 #include <SimpleKalmanFilter.h>
 
-// Define variables here instead of in header
 Adafruit_BMP280 bmp;
 SimpleKalmanFilter pressureKalman(0.5, 0.5, 0.5);
-SimpleKalmanFilter tempKalman(1, 1, 0.01);
-
 bool bmp_initialized = false;
-float sea_level_pressure = 1013.25; // Default sea level pressure in hPa
 
 bool bmp_init() {
-    if (!bmp.begin(0x76)) {  // BMP280 I2C address is usually 0x76 or 0x77
-        Serial.println("Could not find a valid BMP280 sensor, check wiring!");
-        bmp_initialized = false;
+    if (!bmp.begin(0x76)) {
+        Serial.println("BMP280 not found!");
         return false;
     }
     
-    /* Default settings from library */
-    bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,     /* Operating Mode. */
-                    Adafruit_BMP280::SAMPLING_X2,     /* Temp. oversampling */
-                    Adafruit_BMP280::SAMPLING_X16,    /* Pressure oversampling */
-                    Adafruit_BMP280::FILTER_X16,      /* Filtering. */
-                    Adafruit_BMP280::STANDBY_MS_500); /* Standby time. */
+    bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
+                    Adafruit_BMP280::SAMPLING_X2,
+                    Adafruit_BMP280::SAMPLING_X16, 
+                    Adafruit_BMP280::FILTER_X16,
+                    Adafruit_BMP280::STANDBY_MS_500);
     
-    // Read initial sea level pressure (average of first few readings)
-    float sum_pressure = 0;
-    int readings = 10;
-    
-    for (int i = 0; i < readings; i++) {
-        float pressure = bmp.readPressure() / 100.0; // Convert to hPa
-        if (pressure > 0) {
-            sum_pressure += pressure;
-            delay(100);
-        }
+    // Làm nóng bộ lọc
+    for (int i = 0; i < 10; i++) {
+        bmp_altitude();
+        delay(50);
     }
     
-    sea_level_pressure = sum_pressure / readings;
-    Serial.print("Sea level pressure set to: ");
-    Serial.print(sea_level_pressure);
-    Serial.println(" hPa");
-    
     bmp_initialized = true;
-    Serial.println("BMP280 initialized successfully!");
+    Serial.println("BMP280 ready!");
     return true;
 }
 
-float estimated_altitude = 0.0;
-unsigned long last_fusion_time = 0;
-bool first_fusion = true;
-
 float bmp_altitude() {
-    if (!bmp_initialized) {
-        Serial.println("BMP280 not initialized!");
-        return 0.0;
-    }
+    if (!bmp_initialized) return 0.0f;
     
-    // === PHẦN BMP280 ===
-    float pressure = bmp.readPressure() / 100.0; // Convert to hPa
-    if (pressure <= 0) {
-        Serial.println("Error reading pressure!");
-        return 0.0;
-    }
+    float pressure = bmp.readPressure() / 100.0f;
+    if (pressure <= 0) return 0.0f;
     
-    // Apply Kalman filter to pressure reading
     float filtered_pressure = pressureKalman.updateEstimate(pressure);
+    float altitude = 44330.0f * (1.0f - pow(filtered_pressure / 1013.25f, 0.1903f));
     
-    // Calculate altitude using barometric formula with filtered pressure
-    float baro_altitude = 44330.0 * (1.0 - pow(filtered_pressure / sea_level_pressure, 0.1903));
-    
-    // === PHẦN KẾT HỢP MPU6050 ===
-    // Lấy thời gian hiện tại
-    unsigned long current_time = micros();
-    float dt = 0.0;
-    
-    if (!first_fusion) {
-        dt = (current_time - last_fusion_time) / 1000000.0; // Convert to seconds
-        // Giới hạn dt để tránh giá trị quá lớn khi có interrupt
-        if (dt > 0.1) dt = 0.01;
-        if (dt <= 0) dt = 0.001;
-    } else {
-        first_fusion = false;
-        dt = 0.01; // Giả định 10ms cho lần đầu
-    }
-    
-    // Đọc gia tốc Z từ MPU6050 (đã trừ gravity)
-    float accel_z = mpu6050_accel_z(); // m/s²
-    
-    // Sensor Fusion - Complementary Filter
-    if (first_fusion) {
-        estimated_altitude = baro_altitude; // Khởi tạo với BMP280
-        first_fusion = false;
-    } else {
-        // Dự đoán từ gia tốc (double integration)
-        estimated_altitude = estimated_altitude + accel_z * dt * dt;
+    return altitude;
+}
+
+float bmp_pressure(){
         
-        // Kết hợp với BMP280 (tỉ lệ 70% MPU, 30% BMP)
-        estimated_altitude = 0.92 * estimated_altitude + 0.08 * baro_altitude;
-    }
+    if (!bmp_initialized) return 0.0f;
     
-    last_fusion_time = current_time;
-    return estimated_altitude;
+    float pressure = bmp.readPressure() / 100.0f;
+    if (pressure <= 0) return 0.0f;
+    
+    float filtered_pressure = pressureKalman.updateEstimate(pressure);
+
+    return pressure;
 }
 float bmp_temperature() {
     if (!bmp_initialized) {
@@ -119,8 +64,6 @@ float bmp_temperature() {
         return 0.0;
     }
     
-    // Apply Kalman filter to temperature reading
-    float filtered_temperature = tempKalman.updateEstimate(temperature);
     
-    return filtered_temperature;
+    return temperature;
 }
