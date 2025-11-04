@@ -10,7 +10,7 @@
 #include "config.h"
 #include "motor.h"
 #include <ESP32_Servo.h>
-#include "pid_altitude.h"
+#include "pid_euler.h"
 
 volatile int order = 0;
 
@@ -189,13 +189,17 @@ void task_receive_data_from_ground_station(void *pvParameters){
         lora_send_data("r");
         break;
         case 's': //stop
-        pid_altitude_stop_task();
+        // pid_altitude_stop_task();
+        pid_euler_stop_task();
+        motor_stop();
         break;
       case 'c' : // control
-        // double* data = get_number_from_string(command.substring(1));
-        // Serial.println(data[0]);
+        double* data = get_number_from_string(command.substring(1));
+        Serial.println(data[0]);
         // pid_altitude_receive_command(data[0]);
-        motor_receive_command(command.substring(1));
+            pid_euler_set_base_throttle(data[0]);
+            pid_euler_receive_command(data[2],data[3]);
+        // motor_receive_command(command.substring(1));
         break;
     }
   }

@@ -136,7 +136,12 @@ void motor_receive_command(String command){
 
 }
 
-
+void motor_set_pulse(int pwm1, int pwm2, int pwm3, int pwm4 ){
+    motor1.writeMicroseconds(pwm1);
+    motor2.writeMicroseconds(pwm2);
+    motor3.writeMicroseconds(pwm3);
+    motor4.writeMicroseconds(pwm4);
+}
 
 void motor_rotate(int throttle , float roll, float pitch, float yaw ) {
     motor1.writeMicroseconds((int)round(throttle - roll + pitch + yaw));

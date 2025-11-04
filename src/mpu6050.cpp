@@ -30,24 +30,17 @@ void mpu6050_task(void* parameter) {
         current_pitch = mpu->getAngleY();
         
         // // === GIA TỐC THẲNG ĐỨNG ĐƠN GIẢN ===
-        // float raw_accel_z = mpu->getAccZ();
-        // float vertical_accel = 
-        //     mpu->getAccX() * sin(radians(mpu->getAngleX())) -
-        //     mpu->getAccY() * sin(radians(mpu->getAngleY())) * cos(radians(mpu->getAngleX())) +
-        //     mpu->getAccZ() * cos(radians(mpu->getAngleY())) * cos(radians(mpu->getAngleX())) -
-        //     9.81f;  // m/s² (lên = dương)        
+        float raw_accel_z = mpu->getAccZ();
+        float vertical_accel = 
+            mpu->getAccX() * -sin(radians(mpu->getAngleX())) -
+            mpu->getAccY() * sin(radians(mpu->getAngleY())) * cos(radians(mpu->getAngleX())) +
+            mpu->getAccZ() * cos(radians(mpu->getAngleY())) * cos(radians(mpu->getAngleX())) -
+            0.87f;  // m/s² (lên = dương)        
         // // === FUSION VỚI BMP280 ===
         // === 1. ĐỌC DỮ LIỆU THÔ ===
 // === 1. ĐỌC GIA TỐC (đơn vị g) ===
    // Đọc cảm biến
-    float gx = mpu->getGyroX(), gy = mpu->getGyroY(), gz = mpu->getGyroZ();
-    float ax = mpu->getAccX(), ay = mpu->getAccY(), az = mpu->getAccZ();
-    
-    // Quaternion tạm thời từ gyro
-    float q0 = 1, q1 = gx*dt/2, q2 = gy*dt/2, q3 = gz*dt/2;
-    
-    // Gia tốc thẳng đứng = (a • gravity) - g
-    float vertical_accel = (2*(ax*(q1*q3 - q0*q2) + ay*(q0*q1 + q2*q3) + az*(q0*q0 - q1*q1 - q2*q2 + q3*q3)) - 9.8);
+
 
 
         float current_altitude = bmp_altitude();
@@ -57,15 +50,15 @@ void mpu6050_task(void* parameter) {
         current_velocity += vertical_accel * dt; // Tích phân gia tốc
         current_velocity = 0.98f * current_velocity + 0.02f * baro_velocity; // Fusion
         
-        // Debug
-        static int count = 0;
-        if (count++ % 20 == 0) {
-            Serial.printf("V:%.3f m/s | Acc:%.3f | Baro:%.3f | Roll:%.2f | Pitch : %.2f ", 
-                         current_velocity, vertical_accel, baro_velocity,current_roll, current_pitch);
-                         Serial.print("AccX:"); Serial.print(mpu->getAccX());
-Serial.print(" AccY:"); Serial.print(mpu->getAccY());
-Serial.print(" AccZ:"); Serial.println(mpu->getAccZ());
-        }
+//         // Debug
+//         static int count = 0;
+//         if (count++ % 20 == 0) {
+//             Serial.printf("V:%.3f m/s | Acc:%.3f | Baro:%.3f | Roll:%.2f | Pitch : %.2f ", 
+//                          current_velocity, vertical_accel, baro_velocity,current_roll, current_pitch);
+//                          Serial.print("AccX:"); Serial.print(mpu->getAccX());
+// Serial.print(" AccY:"); Serial.print(mpu->getAccY());
+// Serial.print(" AccZ:"); Serial.println(mpu->getAccZ());
+//         }
 
         
         previous_altitude = current_altitude;

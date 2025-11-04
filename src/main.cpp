@@ -6,7 +6,7 @@
 #include "config.h"
 #include "motor.h"
 #include <ESP32_Servo.h>
-#include "pid_altitude.h"
+#include "pid_euler.h"
 #include <Wire.h>
 
 
@@ -20,13 +20,13 @@ void setup() {
 
   // gps_init();
 
-  // motor_init();
+  motor_init();
 
-  // lora_init();
+  lora_init();
 
-  // init_task_receive_data();
+  init_task_receive_data();
   // init_task_send_data();
-  // pid_altitude_init();
+  pid_euler_init();
 
 }
 
