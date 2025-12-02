@@ -1,95 +1,66 @@
 #include "wifi_log.h"
+#include <Arduino.h>
 
-// Biến toàn cục
-WebServer server(80);  // Web server trên port 80
-String logData = "";   // Lưu trữ log data
+// Khởi tạo biến toàn cục
+WiFiServer tcpServer(TCP_PORT);
+WiFiClient tcpClient;
 
-void handleClientTask(void *parameter) {
-    while (true) {
-        server.handleClient();
-        delay(10);
-    }
-}
-
-void wifi_connect() {
-    const char* ssid = "Vnpt_Duy Thai";
-    const char* password = "namthang";
+void wifi_init() {
+    Serial.println("Đang khởi tạo Access Point...");
+    
+    WiFi.mode(WIFI_AP);
+    IPAddress local_IP(192, 168, 4, 1);
+    IPAddress gateway(192, 168, 4, 1);
+    IPAddress subnet(255, 255, 255, 0);
+    
+    WiFi.softAPConfig(local_IP, gateway, subnet);
+    
+    if (WiFi.softAP(WIFI_SSID, WIFI_PASSWORD)) {
+        Serial.println("Access Point khởi tạo thành công!");
+        Serial.print("SSID: ");
+        Serial.println(WIFI_SSID);
+        Serial.print("IP Address: ");
+        Serial.println(WiFi.softAPIP());
         
-    // Kết nối WiFi
-    WiFi.begin(ssid, password);
-    Serial.print("Connecting to WiFi");
-    
-    // Chờ kết nối
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(1000);
-        Serial.print(".");
-    }
-    
-    Serial.println("\nConnected to WiFi!");
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
-    
-    // Thiết lập web server
-    server.on("/", []() {
-        String html = "<html><head><title>ESP32 Log</title>";
-        html += "<meta http-equiv='refresh' content='0.5'>"; // Tự động refresh 2 giây
-        html += "</head><body>";
-        html += "<h1>ESP32 Log Viewer</h1>";
-        html += "<div style='border:1px solid #ccc; padding:10px; background:#f9f9f9;'>";
-        html += "<pre>" + logData + "</pre>";
-        html += "</div>";
-        html += "</body></html>";
-        server.send(200, "text/html", html);
-    });
-    
-    server.on("/clear", []() {
-        logData = "";
-        server.send(200, "text/plain", "Log cleared");
-    });
-    
-    server.begin();
-    xTaskCreate(handleClientTask, "HTTP_Server", 4096, NULL, 1, NULL);
-    Serial.println("HTTP server started");
-    
-    // Thêm log ban đầu
-    wifi_log("System started");
-    wifi_log("WiFi connected successfully");
-}
-
-void wifi_log(const char* message) {
-    // Thêm timestamp
-    unsigned long currentTime = millis();
-    String timestamp = String(currentTime / 1000) + "s";
-    
-    // Thêm vào log data
-    logData += "[" + timestamp + "] " + String(message) + "\n";
-    
-    // Giới hạn độ dài log (giữ 50 dòng gần nhất)
-    int lineCount = 0;
-    for (int i = 0; i < logData.length(); i++) {
-        if (logData.charAt(i) == '\n') lineCount++;
-    }
-    
-    if (lineCount > 50) {
-        int firstNewline = logData.indexOf('\n');
-        if (firstNewline != -1) {
-            logData = logData.substring(firstNewline + 1);
+        // Khởi động TCP server
+        tcpServer.begin();
+        Serial.println("TCP Server đã khởi động trên port 8888");
+        Serial.println("Đang chờ client kết nối...");
+        
+        // Chờ client kết nối ngay khi khởi tạo
+        while (!tcpClient || !tcpClient.connected()) {
+            tcpClient = tcpServer.available();
+            if (tcpClient) {
+                Serial.println("Client đã kết nối thành công!");
+                break;
+            }
+            delay(500);
+            Serial.print(".");
         }
+    } else {
+        Serial.println("Lỗi khởi tạo Access Point!");
     }
-    
-    // In ra Serial
-    Serial.println(message);
-    
 }
 
 void wifi_logf(const char* format, ...) {
-    char buffer[256];  // Buffer để lưu chuỗi định dạng
+    // Kiểm tra và chấp nhận kết nối mới nếu client đã ngắt kết nối
+    if (!tcpClient || !tcpClient.connected()) {
+        tcpClient = tcpServer.available();
+        if (!tcpClient) {
+            return; // Không có client kết nối
+        }
+    }
     
+    char buffer[512];
     va_list args;
     va_start(args, format);
     vsnprintf(buffer, sizeof(buffer), format, args);
     va_end(args);
     
-    // Sử dụng hàm wifi_log có sẵn
-    wifi_log(buffer);
+    if (tcpClient.connected()) {
+        tcpClient.println(buffer);
+        tcpClient.flush();
+        Serial.print("[Đã gửi] ");
+        Serial.println(buffer);
+    }
 }

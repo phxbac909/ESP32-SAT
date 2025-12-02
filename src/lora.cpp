@@ -119,13 +119,13 @@ void task_send_data_to_ground_station(void *pvParameters){
 
   Serial.println("Send data with order = " + String(order));
   lora_add_data(order,1);
-  lora_add_data(0,2);
-  lora_add_data(0,2);
-  lora_add_data(0,2);
-  lora_add_data(0,2);
-  lora_add_data(0,2);
+  lora_add_data(bmp_altitude(),2);
+  lora_add_data(bmp_temperature(),2);
+  lora_add_data(bmp_pressure(),2);
+  lora_add_data(mpu6050_roll(),2);
+  lora_add_data(mpu6050_pitch(),2);
+  lora_add_data(90,2);
 
-//   lora_add_all_data(mpu6050_data(),3);
 
   TinyGPSLocation location = gps_location();
   // Hiển thị thông tin

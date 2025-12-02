@@ -35,13 +35,7 @@ void mpu6050_task(void* parameter) {
             mpu->getAccX() * -sin(radians(mpu->getAngleX())) -
             mpu->getAccY() * sin(radians(mpu->getAngleY())) * cos(radians(mpu->getAngleX())) +
             mpu->getAccZ() * cos(radians(mpu->getAngleY())) * cos(radians(mpu->getAngleX())) -
-            0.87f;  // m/s² (lên = dương)        
-        // // === FUSION VỚI BMP280 ===
-        // === 1. ĐỌC DỮ LIỆU THÔ ===
-// === 1. ĐỌC GIA TỐC (đơn vị g) ===
-   // Đọc cảm biến
-
-
+            0.87f;  
 
         float current_altitude = bmp_altitude();
         float baro_velocity = (current_altitude - previous_altitude) / dt; // m/s
