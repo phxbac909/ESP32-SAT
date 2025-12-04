@@ -7,6 +7,7 @@ SimpleKalmanFilter pressureKalman(0.5, 0.5, 0.5);
 bool bmp_initialized = false;
 
 bool bmp_init() {
+    // if (bmp_initialized) return true;
     if (!bmp.begin(0x76)) {
         Serial.println("BMP280 not found!");
         return false;
@@ -54,7 +55,6 @@ float bmp_pressure(){
 }
 float bmp_temperature() {
     if (!bmp_initialized) {
-        Serial.println("BMP280 not initialized!");
         return 0.0;
     }
     

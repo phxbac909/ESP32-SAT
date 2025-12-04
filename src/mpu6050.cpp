@@ -14,7 +14,6 @@ static float initial_gravity = 0.0f;
 float pitch = 0.0f, roll = 0.0f;
 
 void mpu6050_task(void* parameter) {
-    if (!bmp_init()) return;
     
     previous_altitude = bmp_altitude();
     last_fusion_time = micros();
@@ -74,6 +73,7 @@ void mpu6050_init() {
 
     mpu->calcGyroOffsets(true);
     // Gravity calibration
+    Serial.println();
     Serial.println("Calibrating gravity...");
     float sum_accel_z = 0.0f;
     for (int i = 0; i < 30; i++) {

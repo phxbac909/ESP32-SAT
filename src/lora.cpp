@@ -39,7 +39,7 @@ void lora_init() {
     LoRa.setSpreadingFactor(8);        // SF8 - Cân bằng tốt
     LoRa.setSignalBandwidth(250E3);    // BW250 - Tốc độ cao, đủ nhạy
     LoRa.setCodingRate4(5);           // CR 4/5 - Sửa lỗi vừa phải
-    LoRa.setTxPower(17);              // Công suất vừa đủ
+    LoRa.setTxPower(20);              // Công suất vừa đủ
     LoRa.setPreambleLength(8);        // Preamble ngắn cho tốc độ
     LoRa.enableCrc();                 // Bật CRC kiểm tra lỗi
     LoRa.setSyncWord(0x12);           // Sync word riêng tránh nhiễu
@@ -118,13 +118,13 @@ void task_send_data_to_ground_station(void *pvParameters){
   while (1){
 
   Serial.println("Send data with order = " + String(order));
-  lora_add_data(order,1);
-  lora_add_data(bmp_altitude(),2);
-  lora_add_data(bmp_temperature(),2);
-  lora_add_data(bmp_pressure(),2);
-  lora_add_data(mpu6050_roll(),2);
-  lora_add_data(mpu6050_pitch(),2);
-  lora_add_data(90,2);
+  lora_add_data(order,2);
+  lora_add_data(bmp_altitude()*100,2);
+  lora_add_data(bmp_temperature()*100,2);
+  lora_add_data(bmp_pressure()*100,2);
+  lora_add_data(mpu6050_roll()*100,2);
+  lora_add_data(mpu6050_pitch()*100,2);
+  lora_add_data(9000,2);
 
 
   TinyGPSLocation location = gps_location();
@@ -145,7 +145,7 @@ void task_send_data_to_ground_station(void *pvParameters){
   Serial.println("----------------------------");
   Serial.println("----------------------------");
   
-  vTaskDelay(5000 / portTICK_PERIOD_MS); // Đợi 5 giây 
+  vTaskDelay(500 / portTICK_PERIOD_MS); // Đợi 5 giây 
  }
  
 }

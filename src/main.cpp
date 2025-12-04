@@ -25,7 +25,7 @@ void setup() {
 
   lora_init();
 
-  init_task_receive_data();
+  // init_task_receive_data();
   init_task_send_data();
   // pid_euler_init();
 
