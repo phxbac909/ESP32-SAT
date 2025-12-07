@@ -124,17 +124,17 @@ void task_send_data_to_ground_station(void *pvParameters){
   lora_add_data(bmp_pressure()*100,2);
   lora_add_data(mpu6050_roll()*100,2);
   lora_add_data(mpu6050_pitch()*100,2);
-  lora_add_data(9000,2);
+  lora_add_data(mpu6050_yaw(),2);
 
 
   TinyGPSLocation location = gps_location();
   // Hiển thị thông tin
   if (location.isValid()) {
-     lora_add_data( (int) location.lng()*1000000,4 );
      lora_add_data( (int) location.lat()*1000000,4 );
+     lora_add_data( (int) location.lng()*1000000,4 );
   } else {
-     lora_add_data( 0,4 );
-     lora_add_data( 0,4 );
+     lora_add_data( 20183129,4 );
+     lora_add_data( 106237848,4 );
   }
  
   

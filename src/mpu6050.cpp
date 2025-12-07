@@ -6,6 +6,7 @@
 static MPU6050* mpu = nullptr;
 static bool is_initialized = false;
 static float current_roll = 0.0f;
+static float current_yaw = 0.0f;
 static float current_pitch = 0.0f; 
 static float current_velocity = 0.0f; // m/s
 static float previous_altitude = 0.0f;
@@ -27,6 +28,8 @@ void mpu6050_task(void* parameter) {
         mpu->update();
         current_roll = mpu->getAngleX();
         current_pitch = mpu->getAngleY();
+        current_yaw = mpu->getAngleZ();
+        
         
         // // === GIA TỐC THẲNG ĐỨNG ĐƠN GIẢN ===
         float raw_accel_z = mpu->getAccZ();
@@ -89,6 +92,7 @@ void mpu6050_init() {
 
 float mpu6050_roll() { return current_roll; }
 float mpu6050_pitch() { return current_pitch; }
+float mpu6050_yaw(){ return current_yaw;}
 float mpu6050_velocity() { return current_velocity; } // m/s
 float mpu6050_accel_z() { return (mpu->getAccZ() - initial_gravity) * 9.81f; } // m/s²
 void mpu6050_reset_velocity() { current_velocity = 0.0f; }
