@@ -10,5 +10,7 @@ void pid_euler_set_base_throttle(int throttle);
 void pid_euler_set_roll_pid(double kp, double ki, double kd);
 void pid_euler_set_pitch_pid(double kp, double ki, double kd);
 void pid_euler_init(void);
+void pid_euler_set_pitch(int pitch);
+void pid_euler_set_roll(int roll);
 
 #endif

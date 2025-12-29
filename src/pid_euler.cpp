@@ -2,15 +2,19 @@
 #include "mpu6050.h"
 #include "motor.h"
 #include "PID_v1.h"
+#include "esp32_now.h"
+#include "data_struct.h"
+#include "config.h"
+
 
 // PID tuning parameters
 double PID_ROLL_KP = 1.0;
-double PID_ROLL_KI = 0.05;
-double PID_ROLL_KD = 0.2;
+double PID_ROLL_KI = 0;
+double PID_ROLL_KD = 0;
 
 double PID_PITCH_KP = 1.0;
-double PID_PITCH_KI = 0.05;
-double PID_PITCH_KD = 0.2;
+double PID_PITCH_KI = 0;
+double PID_PITCH_KD = 0;
 
 // PID variables
 double roll_input = 0;
@@ -29,6 +33,8 @@ PID pitch_pid(&pitch_input, &pitch_output, &pitch_setpoint, PID_PITCH_KP, PID_PI
 static int roll_command = 0;
 static int pitch_command = 0;
 static int base_throttle = 1000;
+
+bool write_log = true;
 
 // Task handle
 static TaskHandle_t pid_euler_task_handle = NULL;
@@ -51,10 +57,14 @@ void pid_euler_set_pitch_pid(double kp, double ki, double kd) {
     pitch_pid.SetTunings(PID_PITCH_KP, PID_PITCH_KI, PID_PITCH_KD);
 }
 
-void pid_euler_receive_command(int new_roll_command, int new_pitch_command) {
-    roll_command = constrain(new_roll_command, -100, 100);
-    pitch_command = constrain(new_pitch_command, -100, 100);
+void pid_euler_set_pitch(int pitch){
+    pitch_command = constrain(pitch, -100, 100);
 }
+
+void pid_euler_set_roll(int roll){
+    roll_command = constrain(roll, -100, 100);
+}
+
 
 void pid_euler_stop_task() {
     vTaskSuspend(pid_euler_task_handle);
@@ -87,8 +97,22 @@ void pid_euler_task(void *parameter) {
         pwm4 = constrain(pwm4, 1000, 2000);
         
         motor_set_pulse(pwm1, pwm2, pwm3, pwm4);
-        
-        vTaskDelay(20 / portTICK_PERIOD_MS);
+
+        if (write_log){
+            DroneLog log ;
+            log.roll_target = roll_command;
+            log.pitch_target = pitch_command;
+            log.roll = mpu6050_roll();
+            log.pitch = mpu6050_roll();
+            log.pwm1 = pwm1;
+            log.pwm2 = pwm2;
+            log.pwm3 = pwm3;
+            log.pwm4 = pwm4;
+            uint8_t* data = (uint8_t*)&log;
+            esp32_now_send(data,sizeof(DroneLog));
+        }
+        write_log= !write_log;
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
 

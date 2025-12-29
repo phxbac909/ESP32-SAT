@@ -2,6 +2,8 @@
 #include <ESP32_Servo.h>
 #include <Arduino.h>
 #include <motor.h>
+#include "config.h"
+
 
 // Khai báo biến toàn cục
 Servo motor1, motor2, motor3, motor4;
@@ -37,25 +39,25 @@ void motor_init() {
     // KHỞI TẠO Ở THROTTLE 0 - AN TOÀN
     motor_stop();
 
-    Serial.println("Motor initialization successful!");
+    DEBUG_PRINTLN("Motor initialization successful!");
 }
 
 // Hàm hiệu chỉnh throttle range (CHỈ DÙNG KHI THAY ESC MỚI)
 void motor_calibrate() {
-    Serial.println("=== CẢNH BÁO: CHỈ HIỆU CHỈNH KHI THAY ESC MỚI ===");
-    Serial.println("GỠ CÁNH QUẠT TRƯỚC KHI HIỆU CHỈNH!");
-    Serial.println("Nhấn 'y' để tiếp tục...");
+    DEBUG_PRINTLN("=== CẢNH BÁO: CHỈ HIỆU CHỈNH KHI THAY ESC MỚI ===");
+    DEBUG_PRINTLN("GỠ CÁNH QUẠT TRƯỚC KHI HIỆU CHỈNH!");
+    DEBUG_PRINTLN("Nhấn 'y' để tiếp tục...");
     
     while (!Serial.available()) delay(100);
     if (Serial.read() != 'y') {
-        Serial.println("Hiệu chỉnh đã hủy");
+        DEBUG_PRINTLN("Hiệu chỉnh đã hủy");
         return;
     }
     
-    Serial.println("Bắt đầu hiệu chỉnh...");
+    DEBUG_PRINTLN("Bắt đầu hiệu chỉnh...");
     
     // BƯỚC 1: Đặt throttle maximum TRƯỚC KHI lắp pin
-    Serial.println("1. Đặt throttle maximum (2000μs)");
+    DEBUG_PRINTLN("1. Đặt throttle maximum (2000μs)");
     motor1.writeMicroseconds(2000);
     motor2.writeMicroseconds(2000);
     motor3.writeMicroseconds(2000);
@@ -63,16 +65,16 @@ void motor_calibrate() {
     delay(1000);
     
     // BƯỚC 2: LẮP PIN - ESC bắt đầu self-test
-    Serial.println("2. LẮP PIN VÀO ESC NGAY BÂY GIỜ!");
-    Serial.println("   ESC sẽ phát tiếng '123' và beep theo số cell pin");
+    DEBUG_PRINTLN("2. LẮP PIN VÀO ESC NGAY BÂY GIỜ!");
+    DEBUG_PRINTLN("   ESC sẽ phát tiếng '123' và beep theo số cell pin");
     delay(8000); // Chờ người dùng lắp pin và ESC self-test
     
     // BƯỚC 3: ESC phát 2 beep xác nhận maximum throttle
-    Serial.println("3. ESC đã nhận maximum throttle (2 beep)");
+    DEBUG_PRINTLN("3. ESC đã nhận maximum throttle (2 beep)");
     delay(2000);
     
     // BƯỚC 4: Đặt throttle minimum trong 5 giây
-    Serial.println("4. Đặt throttle minimum (1000μs)");
+    DEBUG_PRINTLN("4. Đặt throttle minimum (1000μs)");
     motor1.writeMicroseconds(1000);
     motor2.writeMicroseconds(1000);
     motor3.writeMicroseconds(1000);
@@ -80,11 +82,11 @@ void motor_calibrate() {
     delay(1000);
     
     // BƯỚC 5: ESC xác nhận bằng beep dài
-    Serial.println("5. ESC xác nhận bằng beep dài - hiệu chỉnh hoàn tất!");
+    DEBUG_PRINTLN("5. ESC xác nhận bằng beep dài - hiệu chỉnh hoàn tất!");
     delay(2000);
     
-    Serial.println("✅ HIỆU CHỈNH THÀNH CÔNG!");
-    Serial.println("✅ Tháo pin và lắp cánh quạt trước khi sử dụng");
+    DEBUG_PRINTLN("✅ HIỆU CHỈNH THÀNH CÔNG!");
+    DEBUG_PRINTLN("✅ Tháo pin và lắp cánh quạt trước khi sử dụng");
 }
 
 void motor_receive_command(String command){
@@ -127,12 +129,12 @@ void motor_receive_command(String command){
     motor4.writeMicroseconds(pulseValues[3]);
     
     // Debug
-    Serial.print("Motor pulses: ");
+    DEBUG_PRINT("Motor pulses: ");
     for (int i = 0; i < 4; i++) {
-        Serial.print(pulseValues[i]);
-        Serial.print(" ");
+        DEBUG_PRINT(pulseValues[i]);
+        DEBUG_PRINT(" ");
     }
-    Serial.println();
+    DEBUG_PRINTLN();
 
 }
 
@@ -169,5 +171,5 @@ void motor_detach() {
     motor4.detach();
     
     motor_is_initialized = false;
-    Serial.println("Motor đã được giải phóng");
+    DEBUG_PRINTLN("Motor đã được giải phóng");
 }
