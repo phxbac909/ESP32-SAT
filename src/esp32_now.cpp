@@ -114,7 +114,7 @@ void proceedReceivedData(uint8_t *incomingData, size_t length) {
             memcpy(&pidData.ki, &incomingData[5], 4);
             memcpy(&pidData.kd, &incomingData[9], 4);
          
-            pid_euler_set_roll_pid(pidData.kp,pidData.ki,pidData.kp);
+            pid_euler_set_roll_pid(pidData.kp,pidData.ki,pidData.kd);
             
             break;
         }
@@ -133,7 +133,7 @@ void proceedReceivedData(uint8_t *incomingData, size_t length) {
             memcpy(&pidData.ki, &incomingData[5], 4);
             memcpy(&pidData.kd, &incomingData[9], 4);
             
-            pid_euler_set_pitch_pid(pidData.kp,pidData.ki,pidData.kp);
+            pid_euler_set_pitch_pid(pidData.kp,pidData.ki,pidData.kd);
 
    
             

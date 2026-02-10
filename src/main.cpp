@@ -15,9 +15,10 @@ void setup() {
   delay(1000);
   DEBUG_PRINTLN("Starting ESP32-SAT...");  
 
-   mpu6050_init();
-   pid_euler_init();
-   esp32_now_init();
+  mpu6050_init();
+  motor_init();
+  esp32_now_init();
+  pid_euler_init();
 
 
 
@@ -26,3 +27,4 @@ void setup() {
 void loop() {
 
 }
+

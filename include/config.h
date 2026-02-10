@@ -1,5 +1,5 @@
 // Trong config.h
-// #define ENABLE_SERIAL_DEBUG  // Comment dòng này để tắt hoàn toàn
+// #define ENABLE_SERIAL_DEBUG  
 
 #ifdef ENABLE_SERIAL_DEBUG
   #define SERIAL_BEGIN(x) Serial.begin(x)

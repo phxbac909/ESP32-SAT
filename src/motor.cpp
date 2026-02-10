@@ -7,7 +7,7 @@
 
 // Khai báo biến toàn cục
 Servo motor1, motor2, motor3, motor4;
-const int motorPins[4] = {25, 26, 27, 33};
+const int motorPins[4] = {33,25 ,26, 27};
 bool motor_is_initialized = false;
 
 boolean motor_is_active(){
@@ -28,7 +28,10 @@ void motor_stop() {
 // Khởi tạo motor - KHÔNG hiệu chỉnh tự động
 void motor_init() {
     if (motor_is_initialized) return;
-    
+    motor1.writeMicroseconds(1000);
+    motor2.writeMicroseconds(1000);
+    motor3.writeMicroseconds(1000);
+    motor4.writeMicroseconds(1000);
     // Gắn motor vào các chân với pulse width range 1000-2000μs
     motor1.attach(motorPins[0], 1000, 2000);
     motor2.attach(motorPins[1], 1000, 2000);
