@@ -151,10 +151,10 @@ void pid_euler_task(void *parameter) {
         // PWM2 (Front Left - CCW):  +Pitch +Roll +Yaw
         // PWM3 (Rear Left - CW):    -Pitch +Roll -Yaw
         // PWM4 (Rear Right - CCW):  -Pitch -Roll +Yaw
-        int pwm2 = base_throttle + p_out - r_out + y_out; // FR (CW)
-        int pwm3 = base_throttle + p_out + r_out - y_out; // FL (CCW)
-        int pwm4 = base_throttle - p_out + r_out + y_out; // RL (CW)
-        int pwm1 = base_throttle - p_out - r_out - y_out; // RR (CCW)
+        int pwm2 = base_throttle + p_out + r_out ;// - y_out; // FR (CW)
+        int pwm3 = base_throttle + p_out - r_out;// + y_out; // FL (CCW)
+        int pwm4 = base_throttle - p_out - r_out;// - y_out; // RL (CW)
+        int pwm1 = base_throttle - p_out + r_out;// + y_out; // RR (CCW)
 
         
         // Safety: Nếu ga thấp thì không chạy PID Rate để tránh quay motor dưới đất
@@ -180,8 +180,8 @@ void pid_euler_task(void *parameter) {
             DroneLog log;
             log.roll_target = roll_command;
             log.pitch_target = pitch_command;
-            log.roll = roll_input;       // Góc đo được
-            log.pitch = pitch_input;     // Góc đo được
+            log.roll = roll_input;      
+            log.pitch = pitch_input;     
             log.pwm1 = pwm1;
             log.pwm2 = pwm2;
             log.pwm3 = pwm3;
@@ -190,13 +190,13 @@ void pid_euler_task(void *parameter) {
             esp32_now_send(data, sizeof(DroneLog));
             // Serial.print("R: "); Serial.print(roll_input); Serial.print(" | P: "); Serial.print(pitch_input);
             // Serial.print(" : ");
+            // Serial.print(pwm1);
+            // Serial.print("...");
             // Serial.print(pwm2);
             // Serial.print("...");
             // Serial.print(pwm3);
             // Serial.print("...");
             // Serial.print(pwm4);
-            // Serial.print("...");
-            // Serial.print(pwm1);
             // Serial.println();
             log_counter = 0;
         }
