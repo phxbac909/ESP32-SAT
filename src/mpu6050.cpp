@@ -1,50 +1,20 @@
 #include "mpu6050.h"
 #include <MPU6050_tockn.h>
 #include <Wire.h>
-#include "config.h"
+#include <math.h>
 
 
 
+// --- BIẾN TOÀN CỤC ---
 static MPU6050* mpu = nullptr;
 static bool is_initialized = false;
+static imu_data_t g_imu_data = {0}; 
 
-// Biến lưu Gyro
-static float gyro_roll_input = 0.0f;
-static float gyro_pitch_input = 0.0f;
-static float gyro_yaw_input = 0.0f;
+// Biến lưu thời gian để tính dt
+static unsigned long last_time_us = 0; 
 
-// Biến lưu Angle
-static float current_roll = 0.0f;
-static float current_pitch = 0.0f;
-static float current_yaw = 0.0f;
-
-
-
-
-float mpu6050_gyro_roll() { return gyro_roll_input; }
-float mpu6050_gyro_pitch() { return gyro_pitch_input; }
-float mpu6050_gyro_yaw() { return gyro_yaw_input; }
-float mpu6050_roll() { return current_roll; }
-float mpu6050_pitch() { return current_pitch; }
-float mpu6050_yaw() { return current_yaw; }
-void mpu6050_task(void* parameter) {
-    while (1) {
-        mpu->update();
-        
-        // 1. Lấy góc (Angle) - Dùng cho PID vòng ngoài
-        current_roll = mpu->getAngleX();
-        current_pitch = mpu->getAngleY();
-        current_yaw = mpu->getAngleZ();
-        
-        // 2. Lấy Gyro thô và Lọc qua Kalman
-         gyro_roll_input = mpu->getGyroX();
-         gyro_pitch_input = mpu->getGyroY();
-         gyro_yaw_input = mpu->getGyroZ();
-        
-        // Tốc độ loop đọc cảm biến (khoảng 200Hz-250Hz là đẹp)
-        vTaskDelay(4 / portTICK_PERIOD_MS); 
-    }
-}
+// --- HẰNG SỐ TOÁN HỌC ---
+#define DEG_TO_RAD 0.01745329f  // Hệ số đổi Độ sang Radian (pi/180)
 
 void mpu6050_init() {
     if (is_initialized) return;
@@ -57,8 +27,6 @@ void mpu6050_init() {
     mpu->begin();
     
     // --- BẬT LỌC PHẦN CỨNG (DLPF) ---
-    // Kalman hoạt động tốt nhất khi tín hiệu đã được lọc sơ bằng phần cứng
-    // Config 0x03 (~42Hz bandwidth) loại bỏ nhiễu rung cơ khí tần số cao
     Wire.beginTransmission(0x68);
     Wire.write(0x1A); 
     Wire.write(0x03); 
@@ -67,7 +35,51 @@ void mpu6050_init() {
     delay(1000);
     mpu->calcGyroOffsets(true);
 
-    xTaskCreate(mpu6050_task, "imu", 4096, NULL, 2, NULL);
+    // Lưu mốc thời gian ban đầu
+    last_time_us = micros(); 
     is_initialized = true;
 }
 
+// Hàm này sẽ được gọi liên tục bên trong Task PID của bạn
+void IMU_Update_And_Read(imu_data_t *out_data) {
+    if (!is_initialized || out_data == nullptr) return;
+
+    // Cập nhật dữ liệu từ cảm biến
+    mpu->update();
+
+    // --- TÍNH TOÁN dt (dựa trên micros() để có độ chính xác cao) ---
+    unsigned long current_time_us = micros();
+    float dt = (current_time_us - last_time_us) / 1000000.0f; // Đổi ra giây (s)
+    last_time_us = current_time_us;
+
+    // Kẹp dt (Safeguard): Nếu vòng lặp bị kẹt quá lâu (> 50ms), giới hạn dt để không làm nổ bộ lọc
+    if (dt > 0.05f) dt = 0.004f; 
+
+    // 1. Lọc thông thấp (Low Pass Filter) 0.7 - 0.3 cho Gyro
+    g_imu_data.gyro_roll  = (g_imu_data.gyro_roll * 0.7f)  + (mpu->getGyroX() * 0.3f);
+    g_imu_data.gyro_pitch = (g_imu_data.gyro_pitch * 0.7f) + (mpu->getGyroY() * 0.3f);
+    g_imu_data.gyro_yaw   = (g_imu_data.gyro_yaw * 0.7f)   + (mpu->getGyroZ() * 0.3f);
+
+    // Lấy góc thô từ Accelerometer
+    g_imu_data.acc_roll  = mpu->getAccAngleX();
+    g_imu_data.acc_pitch = mpu->getAccAngleY();
+
+    // 2. Tích phân Gyro (Vận tốc góc * dt)
+    g_imu_data.roll  += g_imu_data.gyro_roll * dt;
+    g_imu_data.pitch += g_imu_data.gyro_pitch * dt;
+    g_imu_data.yaw   += g_imu_data.gyro_yaw * dt;
+
+    // 3. Quy đổi Roll/Pitch khi xoay Yaw (Chuyển giao hệ quy chiếu)
+    float yaw_rad_step = g_imu_data.gyro_yaw * dt * DEG_TO_RAD; 
+    
+    float roll_temp = g_imu_data.roll; 
+    g_imu_data.roll  += g_imu_data.pitch * sin(yaw_rad_step);
+    g_imu_data.pitch -= roll_temp * sin(yaw_rad_step);
+
+    // 4. Bộ lọc bù (Complementary Filter) 99.96% - 0.04% chống trôi
+    g_imu_data.roll  = g_imu_data.roll * 0.9996f + g_imu_data.acc_roll * 0.0004f;
+    g_imu_data.pitch = g_imu_data.pitch * 0.9996f + g_imu_data.acc_pitch * 0.0004f;
+    
+    // Đẩy dữ liệu ra con trỏ struct của hàm gọi
+    *out_data = g_imu_data;
+}

@@ -3,15 +3,21 @@
 
 #include <Arduino.h>
 
-void mpu6050_init();
-float mpu6050_roll();
-float mpu6050_pitch(); 
-float mpu6050_yaw();
-float mpu6050_gyro_roll();
-float mpu6050_gyro_pitch();
-float mpu6050_gyro_yaw();
+// --- ĐỊNH NGHĨA STRUCT (Nên đặt trong mpu6050.h) ---
+typedef struct {
+    float roll;
+    float pitch;
+    float yaw;
+    
+    float gyro_roll;
+    float gyro_pitch;
+    float gyro_yaw;
+    
+    float acc_roll;
+    float acc_pitch;
+} imu_data_t;
 
-float mpu6050_velocity(); // Vận tốc thẳng đứng đã fusion với BMP280
-float mpu6050_accel_z(); // Gia tốc Z thô (tuỳ chọn)
+void mpu6050_init();
+void IMU_Update_And_Read(imu_data_t *out_data);
 
 #endif
