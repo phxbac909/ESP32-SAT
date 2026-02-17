@@ -16,7 +16,7 @@
 //         motor_set_pulse(1000, 1000, 1000, 1000); // Stop all first
 //         delay(100);
         
-//         int spin_speed = 1100; // Tốc độ test
+//         int spin_speed = 1050; // Tốc độ test
         
 //         if (c == '1') {
 //             Serial.println("Spinning Motor 1 (FR - CW)");
@@ -30,6 +30,9 @@
 //         } else if (c == '4') {
 //             Serial.println("Spinning Motor 4 (RR - CCW)");
 //             motor_set_pulse(1000, 1000, 1000, spin_speed);
+//         }else if (c == '5') {
+//             Serial.println("Spinning All");
+//             motor_set_pulse(spin_speed, spin_speed, spin_speed, spin_speed);
 //         } else if (c == 'x') {
 //             Serial.println("STOP");
 //             motor_set_pulse(1000, 1000, 1000, 1000);

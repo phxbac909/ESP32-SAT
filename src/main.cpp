@@ -14,8 +14,6 @@
 void setup() {
   SERIAL_BEGIN(115200);
 
-  // Serial.begin(115200);
-
   delay(1000);
   DEBUG_PRINTLN("Starting ESP32-SAT...");  
 

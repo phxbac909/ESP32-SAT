@@ -28,10 +28,6 @@ void motor_stop() {
 // Khởi tạo motor - KHÔNG hiệu chỉnh tự động
 void motor_init() {
     if (motor_is_initialized) return;
-    motor1.writeMicroseconds(1000);
-    motor2.writeMicroseconds(1000);
-    motor3.writeMicroseconds(1000);
-    motor4.writeMicroseconds(1000);
     // Gắn motor vào các chân với pulse width range 1000-2000μs
     motor1.attach(motorPins[0], 1000, 2000);
     motor2.attach(motorPins[1], 1000, 2000);

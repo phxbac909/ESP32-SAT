@@ -48,16 +48,16 @@ void pid_euler_test_task(void *parameter) {
         IMU_Update_And_Read(&current_imu);
 
         // Safety Stop
-        if (abs(current_imu.roll) >= 45 || abs(current_imu.pitch) >= 45) {
-            motor_stop();
+        // if (abs(current_imu.roll) >= 45 || abs(current_imu.pitch) >= 45) {
+        //     motor_stop();
             
-            test_pid_rate_roll.reset(); 
-            test_pid_rate_pitch.reset();
-            test_pid_rate_yaw.reset();
+        //     test_pid_rate_roll.reset(); 
+        //     test_pid_rate_pitch.reset();
+        //     test_pid_rate_yaw.reset();
             
-            vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_PERIOD_MS); 
-            continue;
-        }
+        //     vTaskDelayUntil(&xLastWakeTime, 100 / portTICK_PERIOD_MS); 
+        //     continue;
+        // }
         
         // 1. TÍNH TOÁN VÒNG NGOÀI (ANGLE)
         float target_rate_roll = test_pid_angle_roll.compute(test_roll_cmd, current_imu.roll, dt);
@@ -70,10 +70,10 @@ void pid_euler_test_task(void *parameter) {
         float out_yaw = test_pid_rate_yaw.compute(target_rate_yaw, current_imu.gyro_yaw, dt);
 
         // 3. MIXING MOTOR
-        int pwm1 = test_base_throttle - (int)out_pitch + (int)out_roll - (int)out_yaw; 
-        int pwm2 = test_base_throttle + (int)out_pitch + (int)out_roll + (int)out_yaw; 
-        int pwm3 = test_base_throttle + (int)out_pitch - (int)out_roll - (int)out_yaw;
-        int pwm4 = test_base_throttle - (int)out_pitch - (int)out_roll + (int)out_yaw; 
+        int pwm1 = test_base_throttle + (int)out_pitch - (int)out_roll + (int)out_yaw; 
+        int pwm2 = test_base_throttle + (int)out_pitch + (int)out_roll - (int)out_yaw; 
+        int pwm3 = test_base_throttle - (int)out_pitch + (int)out_roll + (int)out_yaw;
+        int pwm4 = test_base_throttle - (int)out_pitch - (int)out_roll - (int)out_yaw; 
         
         if (test_base_throttle < 1050) {
             pwm1 = 1000; pwm2 = 1000; pwm3 = 1000; pwm4 = 1000;

@@ -19,8 +19,16 @@ struct StopSignal {
 struct DroneLog {
     float roll_target;
     float pitch_target;
+    float yaw_target;
     float roll;
     float pitch;
+    float yaw;
+    float gyro_roll_target;
+    float gyro_pitch_target;
+    float gyro_yaw_target;
+    float gyro_roll;
+    float gyro_pitch;
+    float gyro_yaw;
     int pwm1;
     int pwm2;
     int pwm3;

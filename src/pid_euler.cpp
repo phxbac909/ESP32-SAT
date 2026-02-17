@@ -6,18 +6,18 @@
 #include "data_struct.h"
 #include <Arduino.h>
 
-// --- TUNING PARAMETERS ---
-// VÒNG GÓC (ANGLE) - Chỉ dùng P để tính toán tốc độ quay mong muốn (Target Rate)
-// Bỏ hoàn toàn I và D ở vòng này.
-double PID_ROLL_KP = 2.0;  double PID_ROLL_KI = 0.0;  double PID_ROLL_KD = 0.0;
-double PID_PITCH_KP = 2.0; double PID_PITCH_KI = 0.0; double PID_PITCH_KD = 0.0;
-double PID_YAW_KP = 2.0;   double PID_YAW_KI = 0.0;   double PID_YAW_KD = 0.0;
+// --- NEW TUNED PARAMETERS ---
+// VÒNG GÓC (ANGLE) - Giảm nhẹ KP để Target Rate đầu ra không quá gắt
+double PID_ROLL_KP = 3.5;  double PID_ROLL_KI = 0.0;  double PID_ROLL_KD = 0.0;
+double PID_PITCH_KP = 3.5; double PID_PITCH_KI = 0.0; double PID_PITCH_KD = 0.0;
+double PID_YAW_KP = 2.5;   double PID_YAW_KI = 0.0;   double PID_YAW_KD = 0.0;
 
-// VÒNG TỐC ĐỘ (RATE) - Đây mới là nơi thực hiện việc giữ thăng bằng
-// P lớn hơn để phản ứng mạnh với gió/quán tính. D để hãm phanh chống lắc.
-double RATE_ROLL_KP = 0.6;  double RATE_ROLL_KI = 0.0;  double RATE_ROLL_KD = 0.03;
-double RATE_PITCH_KP = 0.6; double RATE_PITCH_KI = 0.0; double RATE_PITCH_KD = 0.03;
-double RATE_YAW_KP = 0.6;   double RATE_YAW_KI = 0.0;   double RATE_YAW_KD = 0.0;
+// VÒNG TỐC ĐỘ (RATE) - Giảm KP để drone không bị lắc (oscillation)
+// Thêm KI (0.05) để drone giữ vững góc nghiêng, không bị trôi tự do.
+// Giảm KD (0.01) để tránh nhiễu từ khung và motor.
+double RATE_ROLL_KP = 0.18;  double RATE_ROLL_KI = 0.05;  double RATE_ROLL_KD = 0.01;
+double RATE_PITCH_KP = 0.18; double RATE_PITCH_KI = 0.05; double RATE_PITCH_KD = 0.01;
+double RATE_YAW_KP = 0.25;   double RATE_YAW_KI = 0.05;  double RATE_YAW_KD = 0.0;
 
 // --- KHỞI TẠO CÁC OBJECT PID ---
 static PID pid_angle_roll;
@@ -63,11 +63,11 @@ void pid_euler_task(void *parameter) {
     int log_counter = 0;
     imu_data_t current_imu; 
     
-    TickType_t xLastWakeTime = xTaskGetTickCount();
     const TickType_t xFrequency = 4 / portTICK_PERIOD_MS; // 250Hz -> dt = 4ms
     const float dt = 0.004f; 
     
     vTaskDelay(100 / portTICK_PERIOD_MS);
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     
     IMU_Update_And_Read(&current_imu);
     yaw_setpoint = current_imu.yaw;
@@ -99,14 +99,12 @@ void pid_euler_task(void *parameter) {
         float out_yaw = pid_rate_yaw.compute(target_rate_yaw, current_imu.gyro_yaw, dt);
 
         // 3. MIXING MOTOR
-        int pwm1 = base_throttle - (int)out_pitch + (int)out_roll + (int)out_yaw; 
+        int pwm1 = base_throttle + (int)out_pitch - (int)out_roll + (int)out_yaw; 
         int pwm2 = base_throttle + (int)out_pitch + (int)out_roll - (int)out_yaw; 
-        int pwm3 = base_throttle + (int)out_pitch - (int)out_roll + (int)out_yaw;
+        int pwm3 = base_throttle - (int)out_pitch + (int)out_roll + (int)out_yaw;
         int pwm4 = base_throttle - (int)out_pitch - (int)out_roll - (int)out_yaw; 
         
-        if (base_throttle < 1050) {
-            pwm1 = 1000; pwm2 = 1000; pwm3 = 1000; pwm4 = 1000;
-            
+        if (base_throttle < 1400) {            
             pid_rate_roll.reset();
             pid_rate_pitch.reset();
             pid_rate_yaw.reset();
@@ -127,8 +125,16 @@ void pid_euler_task(void *parameter) {
             DroneLog log;
             log.roll_target = roll_cmd;
             log.pitch_target = pitch_cmd;
+            log.yaw_target = yaw_setpoint;
             log.roll = current_imu.roll;      
-            log.pitch = current_imu.pitch;     
+            log.pitch = current_imu.pitch;   
+            log.yaw = current_imu.yaw;  
+            log.gyro_roll_target = target_rate_roll;
+            log.gyro_pitch_target = target_rate_pitch;
+            log.gyro_yaw_target = target_rate_yaw;
+            log.gyro_roll = current_imu.gyro_roll;      
+            log.gyro_pitch = current_imu.gyro_pitch;   
+            log.gyro_yaw = current_imu.gyro_yaw;  
             log.pwm1 = pwm1;
             log.pwm2 = pwm2;
             log.pwm3 = pwm3;
