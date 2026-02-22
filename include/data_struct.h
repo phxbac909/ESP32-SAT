@@ -1,22 +1,34 @@
+#pragma once
 #include <Arduino.h>
 
-struct ControlData {
-    byte id;
+typedef struct  {
     int16_t speed;
-};
+    float roll;
+    float pitch;
+    float yaw;
+} __attribute__((packed)) ControlData;
 
-struct PidEulerData {
-    byte id;
-    float kp;
-    float ki;
-    float kd;
-};
+struct __attribute__((packed)) PidData {
 
-struct StopSignal {
+ uint16_t version;
+  
+  // VÒNG GÓC (ANGLE CONTROL)
+  double angle_kp_roll,  angle_ki_roll,  angle_kd_roll;
+  double angle_kp_pitch, angle_ki_pitch, angle_kd_pitch;
+  double angle_kp_yaw,   angle_ki_yaw,   angle_kd_yaw;
+
+  // VÒNG TỐC ĐỘ (RATE CONTROL)
+  double rate_kp_roll,   rate_ki_roll,   rate_kd_roll;
+  double rate_kp_pitch,  rate_ki_pitch,  rate_kd_pitch;
+  double rate_kp_yaw,    rate_ki_yaw,    rate_kd_yaw;
+};
+struct __attribute__((packed)) StopSignal {
     byte id;
 };
 
 struct DroneLog {
+    int16_t version_setting;
+    int16_t time;
     float roll_target;
     float pitch_target;
     float yaw_target;

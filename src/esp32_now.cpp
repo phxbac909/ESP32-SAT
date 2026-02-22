@@ -13,6 +13,7 @@ uint8_t broadcastAddress[] = {0x14, 0x33, 0x5C, 0x2F, 0x1F, 0xB4}; // Broadcast 
 bool data_received = false;
 uint8_t received_data[250]; // Buffer nhận dữ liệu
 int received_data_len = 0;
+ControlData data;
 
 // Khai báo prototype hàm callback
 void on_data_receive(const uint8_t *mac_addr, const uint8_t *incomingData, int len);
@@ -57,8 +58,8 @@ bool esp32_now_send(const uint8_t *data, int len) {
     esp_err_t result = esp_now_send(broadcastAddress, data, len);
     
     if (result == ESP_OK) {
-        DEBUG_PRINT("Data sent successfully, length: ");
-        DEBUG_PRINTLN(len);
+        // DEBUG_PRINT("Data sent successfully, length: ");
+        // DEBUG_PRINTLN(len);
         return true;
     } else {
         DEBUG_PRINT("Error sending data: ");
@@ -78,83 +79,55 @@ void proceedReceivedData(uint8_t *incomingData, size_t length) {
     
     switch (id) {
         case 1: { // ControlData
-            if (length < 3) {
-                DEBUG_PRINTLN("Error: Invalid ControlData length");
+            
+            // 1. SỬA: Kiểm tra đủ độ dài gói tin (1 + 2 + 4 + 4 + 4 = 15 bytes)
+            if (length < 15) {
+                DEBUG_PRINTLN("Err: Ctrl Len < 15");
                 return;
             }
-            
-            ControlData controlData;
-            controlData.id = incomingData[0];
-            // Little Endian: byte thấp trước
-            controlData.speed = (int16_t)(incomingData[1] | (incomingData[2] << 8));
-            
-            DEBUG_PRINTLN("=== Control Data ===");
-            DEBUG_PRINT("ID: ");
-            DEBUG_PRINTLN(controlData.id);
-            DEBUG_PRINT("Speed: ");
-            DEBUG_PRINTLN(controlData.speed);
-            DEBUG_PRINTLN("===================");
-            
-            pid_euler_set_base_throttle(controlData.speed);
-            
-            break;
-        }
-        
-        case 2: { // PidEulerData
-            if (length < 13) {
-                DEBUG_PRINTLN("Error: Invalid PidEulerData length");
-                return;
-            }
-            
-            PidEulerData pidData;
-            pidData.id = incomingData[0];
-            
-            // Đọc float theo Little Endian (4 bytes mỗi float)
-            memcpy(&pidData.kp, &incomingData[1], 4);
-            memcpy(&pidData.ki, &incomingData[5], 4);
-            memcpy(&pidData.kd, &incomingData[9], 4);
-         
-            pid_euler_set_roll_pid(pidData.kp,pidData.ki,pidData.kd);
-            
-            break;
-        }
-        
-         case 3: { // PidEulerData
-            if (length < 13) {
-                DEBUG_PRINTLN("Error: Invalid PidEulerData length");
-                return;
-            }
-            
-            PidEulerData pidData;
-            pidData.id = incomingData[0];
-            
-            // Đọc float theo Little Endian (4 bytes mỗi float)
-            memcpy(&pidData.kp, &incomingData[1], 4);
-            memcpy(&pidData.ki, &incomingData[5], 4);
-            memcpy(&pidData.kd, &incomingData[9], 4);
-            
-            pid_euler_set_pitch_pid(pidData.kp,pidData.ki,pidData.kd);
 
-   
+            // 2. Parse dữ liệu            
+            // Đọc Speed (Little Endian)
+            data.speed = (int16_t)(incomingData[1] | (incomingData[2] << 8));
             
+            // Đọc Floats (memcpy an toàn nhất)
+            memcpy(&data.roll,  &incomingData[3], 4);
+            memcpy(&data.pitch, &incomingData[7], 4);
+            memcpy(&data.yaw,   &incomingData[11], 4);
+            
+            // 3. Gửi vào bộ điều khiển
+            pid_euler_set_base_throttle(data.speed);
+            pid_euler_set_angle(data.roll, data.pitch, data.yaw);
+            
+            // 4. LOG 1 DÒNG NGẮN GỌN (Dùng printf để format đẹp)
+      
+            // DEBUG_PRINTF("Ctrl S:%d R:%.2f P:%.2f Y:%.2f\n", 
+            //             data.speed, data.roll, data.pitch, data.yaw);
+
             break;
         }
-        
-        case 0: { // StopSignal
-            if (length < 1) {
-                DEBUG_PRINTLN("Error: Invalid StopSignal length");
+       case 2: { // PidEulerData
+            // Kiểm tra độ dài: 1 byte ID + Kích thước thực tế của struct PidData
+            if (length < (sizeof(PidData) + 1)) {
+                DEBUG_PRINTF("Err: PID Len %d < Required %d\n", length, sizeof(PidData) + 1);
                 return;
             }
             
-            StopSignal stopSignal;
-            stopSignal.id = incomingData[0];
+            PidData receivedPid;
             
-            DEBUG_PRINTLN("=== Stop Signal ===");
-            DEBUG_PRINT("ID: ");
-            DEBUG_PRINTLN(stopSignal.id);
-            DEBUG_PRINTLN("STOP Command Received!");
-            DEBUG_PRINTLN("==================");
+            // Copy toàn bộ dữ liệu an toàn từ byte thứ 1 (bỏ qua byte 0 là ID) vào struct
+            memcpy(&receivedPid, &incomingData[1], sizeof(PidData));
             
+            // Cập nhật vào hệ thống PID
+            pid_euler_set_tuning(receivedPid);
+            
+            // Log ngắn gọn để xác nhận trên Serial
+            DEBUG_PRINTF("=== PID Parameters Updated via ESP-NOW : %.2f\n",receivedPid.angle_kd_pitch);
+            break;
+        }
+        
+      
+        case 0: { 
             motor_detach();
             break;
         }

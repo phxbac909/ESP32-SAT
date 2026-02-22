@@ -93,7 +93,7 @@ void pid_euler_test_task(void *parameter) {
        
         // 4. LOGGING (10Hz)
         log_counter++;
-        if (log_counter >= 25) { 
+        if (log_counter >= 100) { 
             Serial.print("R: "); 
             Serial.print(current_imu.roll); 
             Serial.print(" | P: "); 
@@ -101,10 +101,10 @@ void pid_euler_test_task(void *parameter) {
             Serial.print(" | Y: "); 
             Serial.print(current_imu.yaw);
             Serial.print(" : ");
-            Serial.print(pwm1); Serial.print("...");
-            Serial.print(pwm2); Serial.print("...");
-            Serial.print(pwm3); Serial.print("...");
-            Serial.print(pwm4);
+            // Serial.print(pwm1); Serial.print("...");
+            // Serial.print(pwm2); Serial.print("...");
+            // Serial.print(pwm3); Serial.print("...");
+            // Serial.print(pwm4);
             Serial.println();
             log_counter = 0;
         }

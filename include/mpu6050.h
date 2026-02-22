@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 
-// --- ĐỊNH NGHĨA STRUCT (Nên đặt trong mpu6050.h) ---
 typedef struct {
     float roll;
     float pitch;
@@ -18,6 +17,6 @@ typedef struct {
 } imu_data_t;
 
 void mpu6050_init();
-void IMU_Update_And_Read(imu_data_t *out_data);
+bool IMU_Update_And_Read(imu_data_t *out_data);
 
 #endif
