@@ -1,6 +1,6 @@
 // Trong config.h
 
-#define ENABLE_SERIAL_DEBUG  
+// #define ENABLE_SERIAL_DEBUG  
 
 
 #ifdef ENABLE_SERIAL_DEBUG

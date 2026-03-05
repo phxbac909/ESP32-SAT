@@ -41,8 +41,8 @@ struct DroneLog {
     float gyro_roll;
     float gyro_pitch;
     float gyro_yaw;
-    int pwm1;
-    int pwm2;
-    int pwm3;
-    int pwm4;
+    int16_t pwm1;
+    int16_t pwm2;
+    int16_t pwm3;
+    int16_t pwm4;
 }__attribute__((packed));

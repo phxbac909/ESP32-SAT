@@ -7,7 +7,7 @@
 
 // Khai báo biến toàn cục
 Servo motor1, motor2, motor3, motor4;
-const int motorPins[4] = {33,25 ,26, 27};
+const int motorPins[4] = {26, 27,33,25};
 bool motor_is_initialized = false;
 
 boolean motor_is_active(){

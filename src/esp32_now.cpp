@@ -1,4 +1,4 @@
-#include <esp_now.h>
+ #include <esp_now.h>
 #include <WiFi.h>
 #include <Arduino.h>
 #include "data_struct.h"
@@ -6,17 +6,23 @@
 #include "config.h"
 #include "motor.h"
 
-
 // Biến toàn cục
 esp_now_peer_info_t peerInfo;
 uint8_t broadcastAddress[] = {0x14, 0x33, 0x5C, 0x2F, 0x1F, 0xB4}; // Broadcast address
+
 bool data_received = false;
 uint8_t received_data[250]; // Buffer nhận dữ liệu
 int received_data_len = 0;
-ControlData data;
 
-// Khai báo prototype hàm callback
+ControlData data;
+PidData receivedPid;
+
+// --- BIẾN PHỤC VỤ FAILSAFE ---
+volatile unsigned long last_packet_time = 0; 
+
+// Khai báo prototype
 void on_data_receive(const uint8_t *mac_addr, const uint8_t *incomingData, int len);
+void failsafeTask(void *pvParameters); // Prototype cho Task Failsafe
 
 // Hàm khởi tạo ESP-NOW
 void esp32_now_init() {
@@ -44,6 +50,20 @@ void esp32_now_init() {
     }
     
     DEBUG_PRINTLN("ESP-NOW Initialized Successfully");
+
+    // Khởi tạo mốc thời gian để không bị trigger failsafe ngay lúc vừa bật nguồn
+    last_packet_time = millis();
+
+    // --- TẠO TASK FAILSAFE CHẠY TRÊN CORE 0 ---
+    xTaskCreatePinnedToCore(
+        failsafeTask,      // Hàm thực thi Task
+        "Failsafe_Task",   // Tên Task (để debug)
+        2048,              // Kích thước Stack (bytes)
+        NULL,              // Tham số truyền vào (không có)
+        1,                 // Độ ưu tiên của Task (1 là cơ bản)
+        NULL,              // Handle (không cần dùng)
+        0                  // Chạy trên Core 0
+    );
 }
 
 // Hàm gửi dữ liệu qua ESP-NOW
@@ -67,7 +87,6 @@ bool esp32_now_send(const uint8_t *data, int len) {
         return false;
     }
 }
-
 
 void proceedReceivedData(uint8_t *incomingData, size_t length) {
     if (length < 1 || incomingData == nullptr) {
@@ -101,8 +120,8 @@ void proceedReceivedData(uint8_t *incomingData, size_t length) {
             
             // 4. LOG 1 DÒNG NGẮN GỌN (Dùng printf để format đẹp)
       
-            // DEBUG_PRINTF("Ctrl S:%d R:%.2f P:%.2f Y:%.2f\n", 
-            //             data.speed, data.roll, data.pitch, data.yaw);
+            DEBUG_PRINTF("Ctrl S:%d R:%.2f P:%.2f Y:%.2f\n", 
+                        data.speed, data.roll, data.pitch, data.yaw);
 
             break;
         }
@@ -112,8 +131,6 @@ void proceedReceivedData(uint8_t *incomingData, size_t length) {
                 DEBUG_PRINTF("Err: PID Len %d < Required %d\n", length, sizeof(PidData) + 1);
                 return;
             }
-            
-            PidData receivedPid;
             
             // Copy toàn bộ dữ liệu an toàn từ byte thứ 1 (bỏ qua byte 0 là ID) vào struct
             memcpy(&receivedPid, &incomingData[1], sizeof(PidData));
@@ -126,7 +143,6 @@ void proceedReceivedData(uint8_t *incomingData, size_t length) {
             break;
         }
         
-      
         case 0: { 
             motor_detach();
             break;
@@ -138,11 +154,60 @@ void proceedReceivedData(uint8_t *incomingData, size_t length) {
             break;
     }
 }
+
 // Callback khi nhận dữ liệu (đã đăng ký trong init)
 void on_data_receive(const uint8_t *mac_addr, const uint8_t *incomingData, int len) {
+    // --- CẬP NHẬT MỐC THỜI GIAN KHI CÓ GÓI TIN MỚI ---
+    last_packet_time = millis();
+
     // Sao chép dữ liệu vào buffer
     if (len <= 250) {
        proceedReceivedData((uint8_t*) incomingData,len);
     }
 }
 
+// =======================================================
+// TASK FAILSAFE CHẠY TRÊN CORE 0
+// =======================================================
+void failsafeTask(void *pvParameters) {
+    unsigned long last_step_time = 0; // Lưu thời điểm giảm ga lần cuối
+    
+    for (;;) { // Vòng lặp vô hạn của Task
+        unsigned long current_time = millis();
+
+        // Kiểm tra nếu mất tín hiệu quá 1 giây (1000ms)
+        if (current_time - last_packet_time >= 1000) {
+            
+            // Cứ mỗi 0.5 giây (500ms) thực hiện can thiệp 1 lần
+            if (current_time - last_step_time >= 500) {
+                last_step_time = current_time;
+
+                // 1. Đặt góc nghiêng về 0 để Quadcopter cố gắng tự cân bằng
+                data.roll = 0.0f;
+                data.pitch = 0.0f;
+                data.yaw = 0.0f;
+
+                // 2. Hạ từ từ throttle (giảm 40)
+                if (data.speed > 1000) {
+                    data.speed -= 40;
+                    if (data.speed < 1000) {
+                        data.speed = 1000; // Không cho phép tụt dưới 1000
+                    }
+                }
+
+                // 3. Cập nhật thông số mới vào hệ thống PID
+                pid_euler_set_angle(data.roll, data.pitch, data.yaw);
+                pid_euler_set_base_throttle(data.speed);
+
+                DEBUG_PRINTF("[FAILSAFE CẢNH BÁO] Mất sóng! Đang hạ cánh. Throttle hiện tại: %d\n", data.speed);
+            }
+        } else {
+            // Khi sóng bình thường, đồng bộ biến last_step_time
+            // để đảm bảo khi vừa ngắt sóng đúng 1s là nó đếm nhịp 0.5s luôn.
+            last_step_time = current_time;
+        }
+
+        // Nhường CPU cho các tác vụ khác trên Core 0 (kiểm tra lại mỗi 50ms)
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+}

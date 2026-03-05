@@ -9,8 +9,6 @@
 #include "config.h"
 #include "pid_euler_test.h"
 
-// #define ENABLE_SERIAL_DEBUG  
-
 
 void setup() {
   SERIAL_BEGIN(115200);

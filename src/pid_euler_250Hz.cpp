@@ -1,13 +1,12 @@
 #include "pid_euler.h"
 #include "mpu6050.h"
 #include "motor.h"
-#include "pid.h" // Nhúng thư viện class PID
+#include "pid.h" 
 #include "esp32_now.h"
 #include <Arduino.h>
 
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 DroneLog drone_log;
-
 
 // --- NEW TUNED PARAMETERS ---
 // VÒNG GÓC (ANGLE) - Giảm nhẹ KP để Target Rate đầu ra không quá gắt
@@ -18,9 +17,9 @@ double PID_YAW_KP = 2;   double PID_YAW_KI = 0.0;   double PID_YAW_KD = 0.0;
 // VÒNG TỐC ĐỘ (RATE) - Giảm KP để drone không bị lắc (oscillation)
 // Thêm KI (0.05) để drone giữ vững góc nghiêng, không bị trôi tự do.
 // Giảm KD (0.01) để tránh nhiễu từ khung và motor.
-double RATE_ROLL_KP = 0.6;  double RATE_ROLL_KI = 0.0;  double RATE_ROLL_KD = 0.0;
-double RATE_PITCH_KP = 0.6; double RATE_PITCH_KI = 0.0; double RATE_PITCH_KD = 0.0;
-double RATE_YAW_KP = 0.6;   double RATE_YAW_KI = 0.0;   double RATE_YAW_KD = 0.0;
+double RATE_ROLL_KP = 0.8;  double RATE_ROLL_KI = 0.0;  double RATE_ROLL_KD = 0.0003;
+double RATE_PITCH_KP = 0.8; double RATE_PITCH_KI = 0.0; double RATE_PITCH_KD = 0.0003;
+double RATE_YAW_KP = 0.8;   double RATE_YAW_KI = 0.0;   double RATE_YAW_KD = 0.0;
 
 // --- KHỞI TẠO CÁC OBJECT PID ---
 static PID pid_angle_roll;
@@ -45,7 +44,6 @@ void pid_euler_set_base_throttle(int throttle) {
     portEXIT_CRITICAL(&mux);
 }
 
-
 void pid_euler_set_tuning(PidData data) {
     portENTER_CRITICAL(&mux);
     drone_log.version_setting = data.version;
@@ -57,8 +55,6 @@ void pid_euler_set_tuning(PidData data) {
     pid_rate_pitch.setTunings(RATE_PITCH_KP, RATE_PITCH_KI, RATE_PITCH_KD);
     pid_rate_yaw.setTunings(RATE_YAW_KP, RATE_YAW_KI, RATE_YAW_KD);
     portEXIT_CRITICAL(&mux);
-
-
 }
 
 void pid_euler_set_angle(float roll, float pitch, float yaw){
@@ -67,7 +63,6 @@ void pid_euler_set_angle(float roll, float pitch, float yaw){
     roll_cmd = constrain(roll, -45, 45); 
     yaw_cmd = yaw; 
     portEXIT_CRITICAL(&mux);
-
 }
 
 void pid_euler_stop_task() {
@@ -79,12 +74,11 @@ void pid_euler_task(void *parameter) {
     int log_counter = 0;
     imu_data_t current_imu; 
     
-    // Cập nhật cho 1kHz
+    // Cập nhật cho 250Hz
     // Lưu ý: Đảm bảo FreeRTOS tick rate (configTICK_RATE_HZ) trong menuconfig đang đặt là 1000
-    const TickType_t xFrequency = pdMS_TO_TICKS(1); // 1000Hz -> dt = 1ms
-    const float dt = 0.001f; 
+    const TickType_t xFrequency = pdMS_TO_TICKS(4); // 250Hz -> dt = 4ms
+    const float dt = 0.004f; 
     
-    // Đã loại bỏ vTaskDelay ở đây để task chạy ngay lập tức khi được khởi tạo
     TickType_t xLastWakeTime = xTaskGetTickCount();
     
     IMU_Update_And_Read(&current_imu);
@@ -94,7 +88,8 @@ void pid_euler_task(void *parameter) {
         IMU_Update_And_Read(&current_imu);
 
         // Safety Stop
-        if (abs(current_imu.roll) >= 45 || abs(current_imu.pitch) >= 45) {
+     if (fabsf(current_imu.roll) >= 37.0f || fabsf(current_imu.pitch) >= 37.0f)
+        {
             motor_stop();
             
             pid_rate_roll.reset(); 
@@ -104,6 +99,7 @@ void pid_euler_task(void *parameter) {
             vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(100)); 
             continue;
         }
+        
         portENTER_CRITICAL(&mux);
         // 1. TÍNH TOÁN VÒNG NGOÀI (ANGLE)
         float target_rate_roll = pid_angle_roll.compute(roll_cmd, current_imu.roll, dt);
@@ -114,32 +110,36 @@ void pid_euler_task(void *parameter) {
         float out_roll = pid_rate_roll.compute(target_rate_roll, current_imu.gyro_roll, dt);
         float out_pitch = pid_rate_pitch.compute(target_rate_pitch, current_imu.gyro_pitch, dt);
         float out_yaw = pid_rate_yaw.compute(target_rate_yaw, current_imu.gyro_yaw, dt);
-        portEXIT_CRITICAL(&mux);
 
+        portEXIT_CRITICAL(&mux);
         // 3. MIXING MOTOR
-        int pwm1 = base_throttle + (int)out_pitch - (int)out_roll + (int)out_yaw; 
-        int pwm2 = base_throttle + (int)out_pitch + (int)out_roll - (int)out_yaw; 
-        int pwm3 = base_throttle - (int)out_pitch + (int)out_roll + (int)out_yaw;
-        int pwm4 = base_throttle - (int)out_pitch - (int)out_roll - (int)out_yaw; 
+
+        // ĐÚNG - tính float trước, cast sau:
+        int pwm1 = (int)(base_throttle + out_pitch + out_roll + out_yaw);
+        int pwm2 = (int)(base_throttle + out_pitch - out_roll - out_yaw);
+        int pwm3 = (int)(base_throttle - out_pitch - out_roll + out_yaw);
+        int pwm4 = (int)(base_throttle - out_pitch + out_roll - out_yaw);
         
         if (base_throttle < 1400) {            
             pid_rate_roll.reset();
             pid_rate_pitch.reset();
             pid_rate_yaw.reset();
-            
+        } 
+        if (base_throttle == 1000) {
             yaw_cmd = current_imu.yaw;
-        } else {
-            pwm1 = constrain(pwm1, 1000, 2000);
-            pwm2 = constrain(pwm2, 1000, 2000);
-            pwm3 = constrain(pwm3, 1000, 2000);
-            pwm4 = constrain(pwm4, 1000, 2000);
         }
+            
+        pwm1 = constrain(pwm1, 1000, 2000);
+        pwm2 = constrain(pwm2, 1000, 2000);
+        pwm3 = constrain(pwm3, 1000, 2000);
+        pwm4 = constrain(pwm4, 1000, 2000);
+
         
-        // motor_set_pulse(pwm1, pwm2, pwm3, pwm4);
+        motor_set_pulse(pwm1, pwm2, pwm3, pwm4);
        
-        // 4. LOGGING (100Hz)
+        // 4. LOGGING (Giữ ở mức 50Hz)
         log_counter++;
-        if (log_counter >= 20) { // Gửi log sau mỗi 1000 : 20 = 50 chu kỳ PID
+        if (log_counter >= 10) { 
             drone_log.time++;
             drone_log.roll_target = roll_cmd;
             drone_log.pitch_target = pitch_cmd;
@@ -161,6 +161,7 @@ void pid_euler_task(void *parameter) {
             esp32_now_send(data, sizeof(DroneLog));
             log_counter = 0;
         }
+        
         vTaskDelayUntil(&xLastWakeTime, xFrequency); 
     }
 }
